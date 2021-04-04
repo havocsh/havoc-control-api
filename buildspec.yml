@@ -1,0 +1,31 @@
+version: 0.2
+phases:
+  install:
+    runtime-versions:
+        python: 3.8
+
+artifacts:
+  type: zip
+  files:
+    - '**/*'
+  secondary-artifacts:
+    artifact1:
+      files:
+        - authorizer/*
+      name: authorizer
+    artifact2:
+      files:
+        - manage/*
+      name: manage
+    artifact3:
+      files:
+        - remote_task/*
+      name: remote_task
+    artifact4:
+      files:
+        - task_control/*
+      name: task_control
+    artifact5:
+      files:
+        - task_result/*
+      name: task_result

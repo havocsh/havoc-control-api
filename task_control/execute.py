@@ -1,0 +1,283 @@
+import json
+import boto3
+from datetime import datetime
+import time as t
+
+
+def format_response(status_code, result, message, log, **kwargs):
+    response = {'result': result, 'message': message}
+    if kwargs:
+        for k, v in kwargs.items():
+            response[k] = v
+    if log:
+        log['response'] = response
+        print(log)
+    return {'statusCode': status_code, 'body': json.dumps(response)}
+
+
+class Task():
+    def __init__(self, campaign_id, task_name, subnet, region, detail: dict, user_id, log):
+        """
+        Instantiate a Task instance
+        """
+        self.campaign_id = campaign_id
+        self.task_name = task_name
+        self.task_context = f'{self.campaign_id}_{region}'
+        self.subnet = subnet
+        self.region = region
+        self.detail = detail
+        self.user_id = user_id
+        self.log = log
+        self.task_type = None
+        self.run_task_response = None
+        self.__aws_dynamodb_client = None
+        self.__aws_ecs_client = None
+        self.__aws_ec2_client = None
+        self.__aws_s3_client = None
+
+    @property
+    def aws_dynamodb_client(self):
+        """Returns the boto3 DynamoDB session (establishes one automatically if one does not already exist)"""
+        if self.__aws_dynamodb_client is None:
+            self.__aws_dynamodb_client = boto3.client('dynamodb', region_name=self.region)
+        return self.__aws_dynamodb_client
+
+    @property
+    def aws_ecs_client(self):
+        """Returns the boto3 ECS session (establishes one automatically if one does not already exist)"""
+        if self.__aws_ecs_client is None:
+            self.__aws_ecs_client = boto3.client('ecs', region_name=self.region)
+        return self.__aws_ecs_client
+
+    @property
+    def aws_ec2_client(self):
+        """Returns the boto3 EC2 session (establishes one automatically if one does not already exist)"""
+        if self.__aws_ec2_client is None:
+            self.__aws_ec2_client = boto3.client('ec2', region_name=self.region)
+        return self.__aws_ec2_client
+
+    @property
+    def aws_s3_client(self):
+        """Returns the boto3 S3 session (establishes one automatically if one does not already exist)"""
+        if self.__aws_s3_client is None:
+            self.__aws_s3_client = boto3.client('s3', region_name=self.region)
+        return self.__aws_s3_client
+
+    def get_task_type_entry(self):
+        return self.aws_dynamodb_client.get_item(
+            TableName=f'{self.campaign_id}_task_types',
+            Key={
+                'task_type': {'S': self.task_type}
+            }
+        )
+
+    def get_task_entry(self):
+        return self.aws_dynamodb_client.get_item(
+            TableName=f'{self.campaign_id}_tasks',
+            Key={
+                'task_name': {'S': self.task_name}
+            }
+        )
+
+    def get_portgroup_entry(self, portgroup_id):
+        return self.aws_dynamodb_client.get_item(
+            TableName=f'{self.campaign_id}_portgroups',
+            Key={
+                'portgroup_id': {'S': portgroup_id}
+            }
+        )
+
+    def update_portgroup_entry(self, portgroup_id, portgroup_tasks):
+        response = self.aws_dynamodb_client.update_item(
+            TableName=f'{self.campaign_id}_portgroups',
+            Key={
+                'portgroup_id': {'S': portgroup_id}
+            },
+            UpdateExpression='set tasks=:tasks',
+            ExpressionAttributeValues={
+                ':tasks': {'SS': portgroup_tasks}
+            }
+        )
+        assert response, f"update_portgroup_entry failed for portgroup_id {portgroup_id}"
+        return True
+
+    def upload_object(self, instruct_user_id, instruct_instance, instruct_command, instruct_args, end_time):
+        if end_time == 'None':
+            payload = {'connection_id': None, 'interactive': 'False', 'task_name': self.task_name,
+                       'task_context': self.task_context, 'task_type': self.task_type,
+                       'instruct_user_id': instruct_user_id, 'instruct_instance': instruct_instance,
+                       'instruct_command': instruct_command, 'instruct_args': instruct_args}
+        else:
+            payload = {'connection_id': None, 'interactive': 'False', 'task_name': self.task_name,
+                       'task_context': self.task_context, 'task_type': self.task_type,
+                       'instruct_user_id': instruct_user_id, 'instruct_instance': instruct_instance,
+                       'instruct_command': instruct_command, 'instruct_args': instruct_args, 'end_time': end_time}
+        payload_bytes = json.dumps(payload).encode('utf-8')
+        response = self.aws_s3_client.put_object(
+            Body=payload_bytes,
+            Bucket=f'{self.campaign_id}-workspace',
+            Key=self.task_name + '/init.txt'
+        )
+        assert response, f"Failed to initialize workspace for task_name {self.task_name}"
+        return True
+
+    def run_attack_task(self, securitygroups, end_time):
+        response = self.aws_ecs_client.run_task(
+            cluster=f'{self.campaign_id}_cluster',
+            count=1,
+            launchType='FARGATE',
+            networkConfiguration={
+                'awsvpcConfiguration': {
+                    'subnets': self.subnet,
+                    'securityGroups': securitygroups,
+                    'assignPublicIp': 'ENABLED'
+                }
+            },
+            overrides={
+                'containerOverrides': [
+                    {
+                        'name': f'{self.campaign_id}_{self.task_type}',
+                        'environment': [
+                            {'name': 'REGION', 'value': self.region},
+                            {'name': 'USER_ID', 'value': self.user_id},
+                            {'name': 'TASK_NAME', 'value': self.task_name},
+                            {'name': 'END_TIME', 'value': end_time}
+                        ]
+                    }
+                ]
+            },
+            taskDefinition=self.task_type
+        )
+        self.run_task_response = response
+
+    def get_ecstask_details(self, ecs_task_id):
+        response = self.aws_ecs_client.describe_tasks(
+            cluster=f'{self.campaign_id}_cluster',
+            tasks=[ecs_task_id]
+        )
+        assert response, f"get_task_details failed for task_name {self.task_name}"
+        return response
+
+    def get_interface_details(self, interface_id):
+        response = self.aws_ec2_client.describe_network_interfaces(
+            NetworkInterfaceIds=[interface_id],
+        )
+        assert response, f"get_interface_details failed for task_name {self.task_name}"
+        return response
+
+    def add_task_entry(self, instruct_user_id, instruct_instance, instruct_command, instruct_args, attack_ip,
+                       portgroups, ecs_task_id, timestamp, end_time):
+        task_status = 'starting'
+        response = self.aws_dynamodb_client.update_item(
+            TableName=f'{self.campaign_id}_tasks',
+            Key={
+                'task_name': {'S': self.task_name}
+            },
+            UpdateExpression='set task_type=:task_type, task_context=:task_context, task_status=:task_status, '
+                             'attack_ip=:attack_ip, portgroups=:portgroups, instruct_instances=:instruct_instances, '
+                             'last_instruct_user_id=:last_instruct_user_id, '
+                             'last_instruct_instance=:last_instruct_instance, '
+                             'last_instruct_command=:last_instruct_command, last_instruct_args=:last_instruct_args, '
+                             'last_instruct_time=:last_instruct_time, create_time=:create_time, '
+                             'scheduled_end_time=:scheduled_end_time, user_id=:user_id, ecs_task_id=:ecs_task_id',
+            ExpressionAttributeValues={
+                ':task_type': {'S': self.task_type},
+                ':task_context': {'S': self.task_context},
+                ':task_status': {'S': task_status},
+                ':attack_ip': {'M': attack_ip},
+                ':portgroups': {'SS': portgroups},
+                ':instruct_instances': {'SS': [instruct_instance]},
+                ':last_instruct_user_id': {'S': instruct_user_id},
+                ':last_instruct_instance': {'S': instruct_instance},
+                ':last_instruct_command': {'S': instruct_command},
+                ':last_instruct_args': {'M': instruct_args},
+                ':last_instruct_time': {'S': 'None'},
+                ':create_time': {'S': timestamp},
+                ':scheduled_end_time': {'S': end_time},
+                ':user_id': {'S': self.user_id},
+                ':ecs_task_id': {'S': ecs_task_id}
+            }
+        )
+        assert response, f"add_task_entry failed for task_name {self.task_name}"
+        return True
+
+    def run_task(self):
+        if 'task_type' not in self.detail:
+            return format_response(400, 'failed', 'invalid detail', self.log)
+        self.task_type = self.detail['task_type']
+
+        task_type_entry = self.get_task_type_entry()
+        if 'Item' not in task_type_entry:
+            return format_response(400, 'failed', f'task_type {self.task_type} does not exist', self.log)
+
+        instruct_user_id = 'None'
+        instruct_instance = 'None'
+        instruct_command = 'None'
+        instruct_args = {'no_args': 'True'}
+        if 'end_time' in self.detail:
+            end_time = self.detail['end_time']
+        else:
+            end_time = 'None'
+
+        if 'portgroups' in self.detail:
+            portgroups = self.detail['portgroups']
+            if not isinstance(portgroups, list):
+                return format_response(400, 'failed', 'portgroups must be type list', self.log)
+            if len(portgroups) > 5:
+                return format_response(400, 'failed', 'portgroups limit exceeded', self.log)
+        else:
+            portgroups = ['None']
+
+        # Verify that the task_name is unique
+        conflict = self.get_task_entry()
+        if 'Item' in conflict:
+            return format_response(409, 'failed', f'{self.task_name} already exists', self.log)
+
+        attack_ip = {}
+        securitygroups = []
+        if 'None' not in portgroups:
+            for portgroup in portgroups:
+                portgroup_entry = self.get_portgroup_entry(portgroup)
+                if 'Item' in portgroup_entry:
+                    securitygroup_id = portgroup_entry['Item']['securitygroup_id']['S']
+                    securitygroups.append(securitygroup_id)
+                    if 'None' in portgroup_entry['Item']['tasks']['SS']:
+                        portgroup_tasks = []
+                    else:
+                        portgroup_tasks = portgroup_entry['Item']['tasks']['SS']
+                    portgroup_tasks.append(self.task_name)
+                    self.update_portgroup_entry(portgroup, portgroup_tasks)
+                else:
+                    return format_response(400, 'failed', f'invalid portgroup_id: {portgroup}', self.log)
+        self.run_attack_task(securitygroups, end_time)
+        # Log task execution details
+        ecs_task_id = self.run_task_response['tasks'][0]['taskArn']
+        t.sleep(10)
+        ecs_task_details = self.get_ecstask_details(ecs_task_id)
+        interface_id = ecs_task_details['tasks'][0]['attachments'][0]['details'][1]['value']
+        interface_details = self.get_interface_details(interface_id)
+        attack_ip[self.task_type] = interface_details['NetworkInterfaces'][0]['Association']['PublicIp']
+        recorded_info = {
+            'task_executed': {
+                'user_id': self.user_id, 'task_name': self.task_name, 'task_context': self.task_context,
+                'task_type': self.task_type
+            },
+            'task_details': ecs_task_details,
+            'interface_details': attack_ip
+        }
+        print(recorded_info)
+
+        timestamp = datetime.now().strftime('%s')
+        self.upload_object(instruct_user_id, instruct_instance, instruct_command, instruct_args, end_time)
+
+        # Convert attack_ip for inclusion in task entry
+        attack_ip_fixup = {}
+        for key, value in attack_ip.items():
+            attack_ip_fixup[key] = {'S': value}
+        instruct_args_fixup = {'no_args': {'S': 'True'}}
+        # Add task entry to tasks table in DynamoDB
+        self.add_task_entry(instruct_user_id, instruct_instance, instruct_command, instruct_args_fixup, attack_ip_fixup,
+                            portgroups, ecs_task_id, timestamp, end_time)
+
+        # Send response
+        return format_response(200, 'success', 'execute task succeeded', None, attack_ip=attack_ip)
