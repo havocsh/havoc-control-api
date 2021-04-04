@@ -3,29 +3,16 @@ phases:
   install:
     runtime-versions:
         python: 3.8
-
-artifacts:
-  type: zip
-  files:
-    - '**/*'
-  secondary-artifacts:
-    artifact1:
-      files:
-        - authorizer/*
-      name: authorizer
-    artifact2:
-      files:
-        - manage/*
-      name: manage
-    artifact3:
-      files:
-        - remote_task/*
-      name: remote_task
-    artifact4:
-      files:
-        - task_control/*
-      name: task_control
-    artifact5:
-      files:
-        - task_result/*
-      name: task_result
+build:
+  commands:
+    - echo Building...
+    - zip -r authorizer.zip authorizer
+    - zip -r manage.zip manage
+    - zip -r remote_task.zip remote_task
+    - zip -r task_control.zip task_control
+    - zip -r task_result.zip task_result
+    - aws s3 cp authorizer.zip s3://havoc-control-api
+    - aws s3 cp manage.zip s3://havoc-control-api
+    - aws s3 cp remote_task.zip s3://havoc-control-api
+    - aws s3 cp task_control.zip s3://havoc-control-api
+    - aws s3 cp task_result.zip s3://havoc-control-api
