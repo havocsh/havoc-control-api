@@ -1,18 +1,15 @@
 version: 0.2
 phases:
-  install:
-    runtime-versions:
-        python: 3.8
-build:
-  commands:
-    - echo Building...
-    - zip -r authorizer.zip authorizer
-    - zip -r manage.zip manage
-    - zip -r remote_task.zip remote_task
-    - zip -r task_control.zip task_control
-    - zip -r task_result.zip task_result
-    - aws s3 cp authorizer.zip s3://$BUCKET
-    - aws s3 cp manage.zip s3://$BUCKET
-    - aws s3 cp remote_task.zip s3://$BUCKET
-    - aws s3 cp task_control.zip s3://$BUCKET
-    - aws s3 cp task_result.zip s3://$BUCKET
+  build:
+    commands:
+      - echo Building...
+      - zip -r authorizer.zip authorizer
+      - zip -r manage.zip manage
+      - zip -r remote_task.zip remote_task
+      - zip -r task_control.zip task_control
+      - zip -r task_result.zip task_result
+      - aws s3 cp authorizer.zip s3://$BUCKET
+      - aws s3 cp manage.zip s3://$BUCKET
+      - aws s3 cp remote_task.zip s3://$BUCKET
+      - aws s3 cp task_control.zip s3://$BUCKET
+      - aws s3 cp task_result.zip s3://$BUCKET
