@@ -50,22 +50,20 @@ class Task:
         assert response, f"get_task_entry failed for task_name {self.task_name}"
         return response
 
-    def set_task_busy(self, task_type, instruct_instances, instruct_instance, instruct_command,
-                      instruct_args, timestamp):
+    def set_task_busy(self, instruct_instances, instruct_instance, instruct_command, instruct_args, timestamp):
         task_status = 'busy'
         response = self.aws_dynamodb_client.update_item(
             TableName=f'{self.campaign_id}_tasks',
             Key={
                 'task_name': {'S': self.task_name}
             },
-            UpdateExpression='set task_status=:task_status, task_type=:task_type, '
-                             'instruct_instances=:instruct_instances, last_instruct_user_id=:last_instruct_user_id, '
+            UpdateExpression='set task_status=:task_status, instruct_instances=:instruct_instances, '
+                             'last_instruct_user_id=:last_instruct_user_id, '
                              'last_instruct_instance=:last_instruct_instance, '
                              'last_instruct_command=:last_instruct_command, last_instruct_args=:last_instruct_args, '
                              'last_instruct_time=:last_instruct_time',
             ExpressionAttributeValues={
                 ':task_status': {'S': task_status},
-                ':task_type': {'S': task_type},
                 ':instruct_instances': {'SS': instruct_instances},
                 ':last_instruct_user_id': {'S': self.user_id},
                 ':last_instruct_instance': {'S': instruct_instance},
@@ -77,15 +75,19 @@ class Task:
         assert response, f"add_task_entry failed for task_name {self.task_name}"
         return True
 
-    def upload_object(self, task_type, instruct_instance, instruct_command, instruct_args, end_time, timestamp):
+    def upload_object(self, instruct_instance, instruct_command, instruct_args, end_time, timestamp):
         if end_time is None:
-            payload = {'connection_id': 'None', 'interactive': 'False', 'instruct_user_id': self.user_id,
-                       'task_type': task_type, 'instruct_instance': instruct_instance,
-                       'instruct_command': instruct_command, 'instruct_args': instruct_args}
+            payload = {
+                'connection_id': 'None', 'interactive': 'False', 'instruct_user_id': self.user_id,
+                'instruct_instance': instruct_instance, 'instruct_command': instruct_command,
+                'instruct_args': instruct_args
+            }
         else:
-            payload = {'connection_id': 'None', 'interactive': 'False', 'instruct_user_id': self.user_id,
-                       'task_type': task_type, 'instruct_instance': instruct_instance,
-                       'instruct_command': instruct_command, 'instruct_args': instruct_args, 'end_time': end_time}
+            payload = {
+                'connection_id': 'None', 'interactive': 'False', 'instruct_user_id': self.user_id,
+                'instruct_instance': instruct_instance, 'instruct_command': instruct_command,
+                'instruct_args': instruct_args, 'end_time': end_time
+            }
         payload_bytes = json.dumps(payload).encode('utf-8')
         response = self.aws_s3_client.put_object(
             Body=payload_bytes,
@@ -155,9 +157,8 @@ class Task:
                 instruct_args_fixup[k] = {'B': f'{v}'}
 
         # Set task to busy and send instructions to the task
-        self.set_task_busy(task_type, instruct_instances, instruct_instance, instruct_command,
-                           instruct_args_fixup, timestamp)
-        self.upload_object(task_type, instruct_instance, instruct_command, instruct_args, end_time, timestamp)
+        self.set_task_busy(instruct_instances, instruct_instance, instruct_command, instruct_args_fixup, timestamp)
+        self.upload_object(instruct_instance, instruct_command, instruct_args, end_time, timestamp)
 
         # Send response
         return format_response(200, 'success', f'interact with {self.task_name} succeeded', None)

@@ -15,7 +15,7 @@ def format_response(status_code, result, message, log, **kwargs):
     return {'statusCode': status_code, 'body': json.dumps(response)}
 
 
-class Task():
+class Task:
     def __init__(self, campaign_id, task_name, subnet, region, detail: dict, user_id, log):
         """
         Instantiate a Task instance
@@ -103,15 +103,17 @@ class Task():
 
     def upload_object(self, instruct_user_id, instruct_instance, instruct_command, instruct_args, end_time):
         if end_time == 'None':
-            payload = {'connection_id': None, 'interactive': 'False', 'task_name': self.task_name,
-                       'task_context': self.task_context, 'task_type': self.task_type,
-                       'instruct_user_id': instruct_user_id, 'instruct_instance': instruct_instance,
-                       'instruct_command': instruct_command, 'instruct_args': instruct_args}
+            payload = {
+                'connection_id': None, 'interactive': 'False', 'instruct_user_id': instruct_user_id,
+                'instruct_instance': instruct_instance, 'instruct_command': instruct_command,
+                'instruct_args': instruct_args
+            }
         else:
-            payload = {'connection_id': None, 'interactive': 'False', 'task_name': self.task_name,
-                       'task_context': self.task_context, 'task_type': self.task_type,
-                       'instruct_user_id': instruct_user_id, 'instruct_instance': instruct_instance,
-                       'instruct_command': instruct_command, 'instruct_args': instruct_args, 'end_time': end_time}
+            payload = {
+                'connection_id': None, 'interactive': 'False', 'instruct_user_id': instruct_user_id,
+                'instruct_instance': instruct_instance, 'instruct_command': instruct_command,
+                'instruct_args': instruct_args, 'end_time': end_time
+            }
         payload_bytes = json.dumps(payload).encode('utf-8')
         response = self.aws_s3_client.put_object(
             Body=payload_bytes,
@@ -139,8 +141,10 @@ class Task():
                         'name': f'{self.campaign_id}_{self.task_type}',
                         'environment': [
                             {'name': 'REGION', 'value': self.region},
+                            {'name': 'CAMPAIGN_ID', 'value': self.campaign_id},
                             {'name': 'USER_ID', 'value': self.user_id},
                             {'name': 'TASK_NAME', 'value': self.task_name},
+                            {'name': 'TASK_CONTEXT', 'value': self.task_context},
                             {'name': 'END_TIME', 'value': end_time}
                         ]
                     }
