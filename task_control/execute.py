@@ -216,7 +216,7 @@ class Task:
 
         instruct_user_id = 'None'
         instruct_instance = 'None'
-        instruct_command = 'None'
+        instruct_command = 'Initialize'
         instruct_args = {'no_args': 'True'}
         if 'end_time' in self.detail:
             end_time = self.detail['end_time']
