@@ -1,3 +1,4 @@
+import os
 import json
 import boto3
 from datetime import datetime
@@ -24,6 +25,7 @@ class Portgroup():
         self.user_id = user_id
         self.detail = detail
         self.log = log
+        self.vpc_id = os.environ['VPC_ID']
         self.portgroup_name = None
         self.__aws_dynamodb_client = None
         self.__aws_ec2_client = None
@@ -64,7 +66,7 @@ class Portgroup():
         ec2_response = self.aws_ec2_client.create_security_group(
             Description=description,
             GroupName=self.portgroup_name,
-            VpcId=statics.ecs.vpc-fix_this
+            VpcId=self.vpc_id
         )
         securitygroup_id = ec2_response['GroupId']
         tasks = 'None'
