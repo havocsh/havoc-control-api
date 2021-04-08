@@ -39,7 +39,7 @@ def lambda_handler(event, context):
         detail = data['detail']
 
     if 'results' in data:
-        results = data['detail']
+        results = data['results']
 
     if command == 'register_task':
         if not detail:
