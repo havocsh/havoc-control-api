@@ -7,14 +7,11 @@ from datetime import datetime, timezone
 
 
 class Deliver:
-    def __init__(self, region, campaign_id, websocket_url, log_events):
+    def __init__(self, region, campaign_id, log_events):
         self.region = region
         self.campaign_id = campaign_id
-        self.websocket_url = websocket_url
         self.log_events = log_events
         self.user_id = None
-        self.connection_id = None
-        self.__connection = None
         self.__aws_s3_client = None
         self.__aws_dynamodb_client = None
         self.__aws_apigw_client = None
@@ -32,25 +29,6 @@ class Deliver:
         if self.__aws_dynamodb_client is None:
             self.__aws_dynamodb_client = boto3.client('dynamodb', region_name=self.region)
         return self.__aws_dynamodb_client
-
-    @property
-    def aws_apigw_client(self):
-        """Returns the APIGatewayManagement boto3 session (establishes one automatically if one does not already exist)"""
-        if self.__aws_apigw_client is None:
-            self.__aws_apigw_client = boto3.client('apigatewaymanagementapi',
-                              endpoint_url=self.websocket_url)
-        return self.__aws_apigw_client
-
-    @property
-    def connection(self):
-        if self.__connection is None:
-            try:
-                self.__connection = self.aws_apigw_client.get_connection(
-                    ConnectionId=self.connection_id
-                )
-            except:
-                self.__connection = False
-            return self.__connection
 
     def upload_object(self, payload_bytes, stime):
         response = self.aws_s3_client.put_object(
@@ -84,13 +62,6 @@ class Deliver:
             }
         )
         assert response, f'add_queue_attribute failed for task_name {task_name}'
-
-    def post_message(self, json_results):
-        response = self.aws_apigw_client.post_to_connection(
-            Data=json_results,
-            ConnectionId=self.connection_id
-        )
-        assert response, f'post_message failed for connection_id {self.connection_id}'
 
     def get_task_entry(self, task_name):
         return self.aws_dynamodb_client.get_item(
@@ -170,13 +141,11 @@ class Deliver:
         task_name = payload['task_name']
         task_context = payload['task_context']
         task_type = payload['task_type']
-        task_interactive = payload['interactive']
         task_instruct_instance = payload['instruct_instance']
         task_instruct_command = payload['instruct_command']
         task_instruct_args = payload['instruct_args']
         task_attack_ip = payload['attack_ip']
         task_forward_log = payload['forward_log']
-        self.connection_id = payload['connection_id']
         if 'end_time' in payload:
             task_end_time = payload['end_time']
         else:
@@ -192,18 +161,7 @@ class Deliver:
         # Clear out unwanted payload entries
         del payload['instruct_user']
         del payload['end_time']
-        del payload['interactive']
-        del payload['connection_id']
         del payload['forward_log']
-
-        # Send response if task_interactive is True and client is still connected.
-        if task_interactive == 'True':
-            if self.connection:
-                if 'status' in payload['task_response']:
-                    if payload['task_response']['status'] == 'ready' or payload['task_response']['status'] == 'terminating':
-                        payload['portgroups'] = portgroups
-                response = {'statusCode': 200, 'body': payload}
-                self.post_message(json.dumps(response))
 
         if task_forward_log == 'True':
             s3_payload = copy.deepcopy(payload)

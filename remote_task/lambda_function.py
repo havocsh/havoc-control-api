@@ -20,7 +20,6 @@ def format_response(status_code, result, message, log, **kwargs):
 def lambda_handler(event, context):
     region = re.search('arn:aws:lambda:([^:]+):.*', context.invoked_function_arn).group(1)
     campaign_id = os.environ['CAMPAIGN_ID']
-    websocket_url = os.environ['WEBSOCKET_URL']
     log = {'event': event}
     results = None
     detail = None
@@ -61,6 +60,6 @@ def lambda_handler(event, context):
         if not results:
             return format_response(400, 'failed', 'missing results', log)
         else:
-            d = Deliver(campaign_id, region, user_id, websocket_url, results, log)
+            d = Deliver(campaign_id, region, user_id, results, log)
             response = d.deliver_result()
             return response

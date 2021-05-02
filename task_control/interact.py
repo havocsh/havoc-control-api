@@ -78,15 +78,13 @@ class Task:
     def upload_object(self, instruct_instance, instruct_command, instruct_args, end_time, timestamp):
         if end_time is None:
             payload = {
-                'connection_id': 'None', 'interactive': 'False', 'instruct_user_id': self.user_id,
-                'instruct_instance': instruct_instance, 'instruct_command': instruct_command,
-                'instruct_args': instruct_args
+                'instruct_user_id': self.user_id, 'instruct_instance': instruct_instance,
+                'instruct_command': instruct_command, 'instruct_args': instruct_args
             }
         else:
             payload = {
-                'connection_id': 'None', 'interactive': 'False', 'instruct_user_id': self.user_id,
-                'instruct_instance': instruct_instance, 'instruct_command': instruct_command,
-                'instruct_args': instruct_args, 'end_time': end_time
+                'instruct_user_id': self.user_id, 'instruct_instance': instruct_instance,
+                'instruct_command': instruct_command, 'instruct_args': instruct_args, 'end_time': end_time
             }
         payload_bytes = json.dumps(payload).encode('utf-8')
         response = self.aws_s3_client.put_object(

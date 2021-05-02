@@ -16,18 +16,15 @@ def format_response(status_code, result, message, log, **kwargs):
 
 
 class Deliver:
-    def __init__(self, campaign_id, region, user_id, websocket_url, results: dict, log):
+    def __init__(self, campaign_id, region, user_id, results: dict, log):
         self.campaign_id = campaign_id
         self.region = region
         self.user_id = user_id
-        self.websocket_url = websocket_url
         self.results = results
         self.log = log
         self.task_name = None
         self.task_context = None
         self.task_type = None
-        self.connection_id = None
-        self.__connection = None
         self.__aws_s3_client = None
         self.__aws_dynamodb_client = None
         self.__aws_apigw_client = None
@@ -45,25 +42,6 @@ class Deliver:
         if self.__aws_dynamodb_client is None:
             self.__aws_dynamodb_client = boto3.client('dynamodb', region_name=self.region)
         return self.__aws_dynamodb_client
-
-    @property
-    def aws_apigw_client(self):
-        """Returns the APIGatewayManagement boto3 session (establishes one automatically if one does not already exist)"""
-        if self.__aws_apigw_client is None:
-            self.__aws_apigw_client = boto3.client('apigatewaymanagementapi',
-                              endpoint_url=self.websocket_url)
-        return self.__aws_apigw_client
-
-    @property
-    def connection(self):
-        if self.__connection is None:
-            try:
-                self.__connection = self.aws_apigw_client.get_connection(
-                    ConnectionId=self.connection_id
-                )
-            except:
-                self.__connection = False
-            return self.__connection
 
     def upload_object(self, payload_bytes, stime):
         response = self.aws_s3_client.put_object(
@@ -98,13 +76,6 @@ class Deliver:
         )
         assert response, f'add_queue_attribute failed'
         return True
-
-    def post_message(self, json_results):
-        response = self.aws_apigw_client.post_to_connection(
-            Data=json_results,
-            ConnectionId=self.connection_id
-        )
-        assert response, f'post_message failed for connection_id {self.connection_id}'
 
     def get_task_entry(self):
         return self.aws_dynamodb_client.get_item(
@@ -166,7 +137,10 @@ class Deliver:
     def deliver_result(self):
         # Set vars
         stime = datetime.now(timezone.utc).strftime('%s')
-        results_reqs = ['task_name', 'task_context', 'task_type', 'task_interactive', 'task_instruct_instance', 'task_instruct_command', 'task_instruct_args', 'task_attack_ip', 'task_forward_log']
+        results_reqs = [
+            'task_name', 'task_context', 'task_type', 'task_instruct_instance', 'task_instruct_command',
+            'task_instruct_args', 'task_attack_ip', 'task_forward_log'
+        ]
         for i in results_reqs:
             if i not in self.results:
                 return format_response(400, 'failed', 'invalid results', self.log)
@@ -174,7 +148,6 @@ class Deliver:
         self.task_name = self.results['task_name']
         self.task_context = self.results['task_context']
         self.task_type = self.results['task_type']
-        task_interactive = self.results['interactive']
         task_instruct_instance = self.results['instruct_instance']
         task_instruct_command = self.results['instruct_command']
         task_instruct_args = self.results['instruct_args']
@@ -183,8 +156,6 @@ class Deliver:
 
         if self.results['instruct_user'] != 'None':
             self.user_id = self.results['instruct_user']
-        if 'connection_id' in self.results:
-            self.connection_id = self.results['connection_id']
         if 'end_time' in self.results:
             task_end_time = self.results['end_time']
         else:
@@ -198,18 +169,7 @@ class Deliver:
 
         # Clear out unwanted results entries
         del self.results['end_time']
-        del self.results['interactive']
-        del self.results['connection_id']
         del self.results['forward_log']
-
-        # Send response if task_interactive is True and client is still connected.
-        if task_interactive == 'True':
-            if self.connection:
-                if 'status' in self.results['task_response']:
-                    if self.results['task_response']['status'] == 'ready' or self.results['task_response']['status'] == 'terminating':
-                        self.results['portgroups'] = portgroups
-                response = {'statusCode': 200, 'body': self.results}
-                self.post_message(json.dumps(response))
 
         if task_forward_log == 'True':
             s3_payload = copy.deepcopy(self.results)

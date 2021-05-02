@@ -62,13 +62,11 @@ class Task():
 
     def upload_object(self, instruct_user_id, instruct_instance, instruct_command, instruct_args, end_time):
         if end_time == 'None':
-            payload = {'connection_id': None, 'interactive': 'False', 'task_name': self.task_name,
-                       'task_context': self.task_context, 'task_type': self.task_type,
+            payload = {'task_name': self.task_name, 'task_context': self.task_context, 'task_type': self.task_type,
                        'instruct_user_id': instruct_user_id, 'instruct_instance': instruct_instance,
                        'instruct_command': instruct_command, 'instruct_args': instruct_args}
         else:
-            payload = {'connection_id': None, 'interactive': 'False',  'task_name': self.task_name,
-                       'task_context': self.task_context,'task_type': self.task_type,
+            payload = {'task_name': self.task_name, 'task_context': self.task_context,'task_type': self.task_type,
                        'instruct_user_id': instruct_user_id, 'instruct_instance': instruct_instance,
                        'instruct_command': instruct_command, 'instruct_args': instruct_args, 'end_time': end_time}
         payload_bytes = json.dumps(payload).encode('utf-8')
