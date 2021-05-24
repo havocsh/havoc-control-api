@@ -5,10 +5,13 @@ from datetime import datetime
 
 
 def format_response(status_code, result, message, log, **kwargs):
-    response = {'result': result, 'message': message}
+    response = {'result': result}
+    if message:
+        response['message'] = message
     if kwargs:
         for k, v in kwargs.items():
-            response[k] = v
+            if v:
+                response[k] = v
     if log:
         log['response'] = response
         print(log)
@@ -46,12 +49,12 @@ class Portgroup():
 
     def query_portgroups(self):
         return self.aws_dynamodb_client.query(
-            TableName=f'{self.campaign_id}_portgroups'
+            TableName=f'{self.campaign_id}-portgroups'
         )
 
     def get_portgroup_entry(self):
         return self.aws_dynamodb_client.get_item(
-            TableName=f'{self.campaign_id}_portgroups',
+            TableName=f'{self.campaign_id}-portgroups',
             Key={
                 'portgroup_name': {'S': self.portgroup_name}
             }
@@ -71,7 +74,7 @@ class Portgroup():
         securitygroup_id = ec2_response['GroupId']
         tasks = 'None'
         dynamodb_response = self.aws_dynamodb_client.update_item(
-            TableName=f'{self.campaign_id}_portgroups',
+            TableName=f'{self.campaign_id}-portgroups',
             Key={
                 'portgroup_name': {'S': self.portgroup_name}
             },
@@ -95,7 +98,7 @@ class Portgroup():
             GroupId=securitygroup_id
         )
         dynamodb_response = self.aws_dynamodb_client.delete_item(
-            TableName=f'{self.campaign_id}_portgroups',
+            TableName=f'{self.campaign_id}-portgroups',
             Key={
                 'portgroup_name': {'S': self.portgroup_name}
             }
@@ -160,7 +163,7 @@ class Portgroup():
         # Get portgroup details
         portgroup_entry = self.get_portgroup_entry()
         if 'Item' not in portgroup_entry:
-            return format_response(400, 'failed', f'portgroup {self.portgroup_name} does not exist', self.log)
+            return format_response(404, 'failed', f'portgroup {self.portgroup_name} does not exist', self.log)
         securitygroup_id = portgroup_entry['Item']['securitygroup_id']['S']
         tasks = portgroup_entry['Item']['tasks']['SS']
 
@@ -182,7 +185,7 @@ class Portgroup():
 
         portgroup_entry = self.get_portgroup_entry()
         if 'Item' not in portgroup_entry:
-            return format_response(400, 'failed', f'portgroup {self.portgroup_name} does not exist', self.log)
+            return format_response(404, 'failed', f'portgroup {self.portgroup_name} does not exist', self.log)
 
         securitygroup_id = portgroup_entry['Item']['securitygroup_id']['S']
         portgroup_description = portgroup_entry['Item']['portgroup_description']['S']
@@ -234,7 +237,7 @@ class Portgroup():
         # Get portgroup details
         portgroup_entry = self.get_portgroup_entry()
         if 'Item' not in portgroup_entry:
-            return format_response(400, 'failed', f'portgroup {self.portgroup_name} does not exist', self.log)
+            return format_response(404, 'failed', f'portgroup {self.portgroup_name} does not exist', self.log)
         securitygroup_id = portgroup_entry['Item']['securitygroup_id']['S']
 
         # Update security group
@@ -248,4 +251,4 @@ class Portgroup():
                 return format_response(404, 'failed', 'portgroup rule not found', self.log)
 
     def kill(self):
-        return format_response(400, 'failed', 'invalid request', self.log)
+        return format_response(405, 'failed', 'command not accepted for this resource', self.log)

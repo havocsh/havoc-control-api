@@ -5,10 +5,13 @@ import time as t
 
 
 def format_response(status_code, result, message, log, **kwargs):
-    response = {'result': result, 'message': message}
+    response = {'result': result}
+    if message:
+        response['message'] = message
     if kwargs:
         for k, v in kwargs.items():
-            response[k] = v
+            if v:
+                response[k] = v
     if log:
         log['response'] = response
         print(log)
@@ -22,7 +25,7 @@ class Task:
         """
         self.campaign_id = campaign_id
         self.task_name = task_name
-        self.task_context = f'{self.campaign_id}_{region}'
+        self.task_context = f'{self.campaign_id}-{region}'
         self.subnet = subnet
         self.region = region
         self.detail = detail
@@ -65,7 +68,7 @@ class Task:
 
     def get_task_type_entry(self):
         return self.aws_dynamodb_client.get_item(
-            TableName=f'{self.campaign_id}_task_types',
+            TableName=f'{self.campaign_id}-task-types',
             Key={
                 'task_type': {'S': self.task_type}
             }
@@ -73,7 +76,7 @@ class Task:
 
     def get_task_entry(self):
         return self.aws_dynamodb_client.get_item(
-            TableName=f'{self.campaign_id}_tasks',
+            TableName=f'{self.campaign_id}-tasks',
             Key={
                 'task_name': {'S': self.task_name}
             }
@@ -81,7 +84,7 @@ class Task:
 
     def get_portgroup_entry(self, portgroup_id):
         return self.aws_dynamodb_client.get_item(
-            TableName=f'{self.campaign_id}_portgroups',
+            TableName=f'{self.campaign_id}-portgroups',
             Key={
                 'portgroup_id': {'S': portgroup_id}
             }
@@ -89,7 +92,7 @@ class Task:
 
     def update_portgroup_entry(self, portgroup_id, portgroup_tasks):
         response = self.aws_dynamodb_client.update_item(
-            TableName=f'{self.campaign_id}_portgroups',
+            TableName=f'{self.campaign_id}-portgroups',
             Key={
                 'portgroup_id': {'S': portgroup_id}
             },
@@ -123,7 +126,7 @@ class Task:
 
     def run_attack_task(self, securitygroups, end_time):
         response = self.aws_ecs_client.run_task(
-            cluster=f'{self.campaign_id}_cluster',
+            cluster=f'{self.campaign_id}-cluster',
             count=1,
             launchType='FARGATE',
             networkConfiguration={
@@ -136,7 +139,7 @@ class Task:
             overrides={
                 'containerOverrides': [
                     {
-                        'name': f'{self.campaign_id}_{self.task_type}',
+                        'name': f'{self.campaign_id}-{self.task_type}',
                         'environment': [
                             {'name': 'REGION', 'value': self.region},
                             {'name': 'CAMPAIGN_ID', 'value': self.campaign_id},
@@ -154,7 +157,7 @@ class Task:
 
     def get_ecstask_details(self, ecs_task_id):
         response = self.aws_ecs_client.describe_tasks(
-            cluster=f'{self.campaign_id}_cluster',
+            cluster=f'{self.campaign_id}-cluster',
             tasks=[ecs_task_id]
         )
         assert response, f"get_task_details failed for task_name {self.task_name}"
@@ -171,7 +174,7 @@ class Task:
                        portgroups, ecs_task_id, timestamp, end_time):
         task_status = 'starting'
         response = self.aws_dynamodb_client.update_item(
-            TableName=f'{self.campaign_id}_tasks',
+            TableName=f'{self.campaign_id}-tasks',
             Key={
                 'task_name': {'S': self.task_name}
             },
@@ -210,7 +213,7 @@ class Task:
 
         task_type_entry = self.get_task_type_entry()
         if 'Item' not in task_type_entry:
-            return format_response(400, 'failed', f'task_type {self.task_type} does not exist', self.log)
+            return format_response(404, 'failed', f'task_type {self.task_type} does not exist', self.log)
 
         instruct_user_id = 'None'
         instruct_instance = 'None'
@@ -250,7 +253,7 @@ class Task:
                     portgroup_tasks.append(self.task_name)
                     self.update_portgroup_entry(portgroup, portgroup_tasks)
                 else:
-                    return format_response(400, 'failed', f'invalid portgroup_id: {portgroup}', self.log)
+                    return format_response(404, 'failed', f'portgroup_id: {portgroup} does not exist', self.log)
         self.run_attack_task(securitygroups, end_time)
         # Log task execution details
         ecs_task_id = self.run_task_response['tasks'][0]['taskArn']

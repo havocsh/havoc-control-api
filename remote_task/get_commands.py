@@ -4,10 +4,13 @@ import boto3
 
 
 def format_response(status_code, result, message, log, **kwargs):
-    response = {'result': result, 'message': message}
+    response = {'result': result}
+    if message:
+        response['message'] = message
     if kwargs:
         for k, v in kwargs.items():
-            response[k] = v
+            if v:
+                response[k] = v
     if log:
         log['response'] = response
         print(log)
@@ -40,7 +43,7 @@ class Retrieve:
 
     def get_task_entry(self):
         return self.aws_dynamodb_client.get_item(
-            TableName=f'{self.campaign_id}_tasks',
+            TableName=f'{self.campaign_id}-tasks',
             Key={
                 'task_name': {'S': self.task_name}
             }
@@ -54,7 +57,7 @@ class Retrieve:
         command_list = []
         task_entry = self.get_task_entry()
         if 'Item' not in task_entry:
-            return format_response(400, 'failed', f'task {self.task_name} does not exist', self.log)
+            return format_response(404, 'failed', f'task {self.task_name} does not exist', self.log)
 
         list_objects_response = self.aws_s3_client.list_objects_v2(
             Bucket=f'{self.campaign_id}-workspace',

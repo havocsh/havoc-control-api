@@ -4,10 +4,13 @@ from datetime import datetime
 
 
 def format_response(status_code, result, message, log, **kwargs):
-    response = {'result': result, 'message': message}
+    response = {'result': result}
+    if message:
+        response['message'] = message
     if kwargs:
         for k, v in kwargs.items():
-            response[k] = v
+            if v:
+                response[k] = v
     if log:
         log['response'] = response
         print(log)
@@ -46,7 +49,7 @@ class Task():
 
     def get_task_type_entry(self):
         return self.aws_dynamodb_client.get_item(
-            TableName=f'{self.campaign_id}_task_types',
+            TableName=f'{self.campaign_id}-task-types',
             Key={
                 'task_type': {'S': self.task_type}
             }
@@ -54,7 +57,7 @@ class Task():
 
     def get_task_entry(self):
         return self.aws_dynamodb_client.get_item(
-            TableName=f'{self.campaign_id}_tasks',
+            TableName=f'{self.campaign_id}-tasks',
             Key={
                 'task_name': {'S': self.task_name}
             }
@@ -82,7 +85,7 @@ class Task():
                        portgroups, ecs_task_id, timestamp, end_time):
         task_status = 'starting'
         response = self.aws_dynamodb_client.update_item(
-            TableName=f'{self.campaign_id}_tasks',
+            TableName=f'{self.campaign_id}-tasks',
             Key={
                 'task_name': {'S': self.task_name}
             },
@@ -138,7 +141,7 @@ class Task():
 
         task_type_entry = self.get_task_type_entry()
         if 'Item' not in task_type_entry:
-            return format_response(400, 'failed', f'task_type {self.task_type} does not exist', self.log)
+            return format_response(404, 'failed', f'task_type {self.task_type} does not exist', self.log)
 
         # Verify that the task_name is unique
         conflict = self.get_task_entry()

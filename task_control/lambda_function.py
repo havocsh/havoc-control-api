@@ -6,10 +6,13 @@ import interact
 
 
 def format_response(status_code, result, message, log, **kwargs):
-    response = {'result': result, 'message': message}
+    response = {'result': result}
+    if message:
+        response['message'] = message
     if kwargs:
         for k, v in kwargs.items():
-            response[k] = v
+            if v:
+                response[k] = v
     if log:
         log['response'] = response
         print(log)
@@ -19,7 +22,7 @@ def format_response(status_code, result, message, log, **kwargs):
 def lambda_handler(event, context):
     region = re.search('arn:aws:lambda:([^:]+):.*', context.invoked_function_arn).group(1)
     campaign_id = os.environ['CAMPAIGN_ID']
-    subnet = os.environ['subnet']
+    subnet = os.environ['SUBNET']
     log = {'event': event}
 
     user_id = event['requestContext']['authorizer']['user_id']

@@ -3,10 +3,13 @@ import boto3
 
 
 def format_response(status_code, result, message, log, **kwargs):
-    response = {'result': result, 'message': message}
+    response = {'result': result}
+    if message:
+        response['message'] = message
     if kwargs:
         for k, v in kwargs.items():
-            response[k] = v
+            if v:
+                response[k] = v
     if log:
         log['response'] = response
         print(log)
@@ -47,12 +50,12 @@ class Registration():
 
     def query_task_types(self):
         return self.aws_dynamodb_client.query(
-            TableName=f'{self.campaign_id}_task_types'
+            TableName=f'{self.campaign_id}-task-types'
         )
 
     def get_task_type_entry(self):
         return self.aws_dynamodb_client.get_item(
-            TableName=f'{self.campaign_id}_task_types',
+            TableName=f'{self.campaign_id}-task-types',
             Key={
                 'task_type': {'S': self.task_type}
             }
@@ -60,7 +63,7 @@ class Registration():
 
     def add_task_type_entry(self, task_definition_arn):
         response = self.aws_dynamodb_client.update_item(
-            TableName=f'{self.campaign_id}_task_types',
+            TableName=f'{self.campaign_id}-task-types',
             Key={
                 'task_type': {'S': self.task_type}
             },
@@ -79,7 +82,7 @@ class Registration():
 
     def remove_task_type_entry(self):
         response = self.aws_dynamodb_client.delete_item(
-            TableName=f'{self.campaign_id}_task_types',
+            TableName=f'{self.campaign_id}-task-types',
             Key={
                 'task_type': {'S': self.task_type}
             }
@@ -89,13 +92,13 @@ class Registration():
 
     def add_ecs_task_definition(self):
         response = self.aws_ecs_client.register_task_definition(
-            family=f'{self.campaign_id}_{self.task_type}',
-            taskRoleArn=f'{self.campaign_id}_task_role',
-            executionRoleArn=f'{self.campaign_id}_execution_role',
+            family=f'{self.campaign_id}-{self.task_type}',
+            taskRoleArn=f'{self.campaign_id}-task-role',
+            executionRoleArn=f'{self.campaign_id}-execution-role',
             networkMode='awsvpc',
             containerDefinitions=[
                 {
-                    'name': f'{self.campaign_id}_{self.task_type}',
+                    'name': f'{self.campaign_id}-{self.task_type}',
                     'image': self.source_image,
                     'essential': True,
                     'entryPoint': [
@@ -124,7 +127,7 @@ class Registration():
                 },
                 {
                     'key': 'name',
-                    'value': f'{self.campaign_id}_{self.task_type}'
+                    'value': f'{self.campaign_id}-{self.task_type}'
                 },
             ]
         )
@@ -152,7 +155,7 @@ class Registration():
         # Verify that the task_type is unique
         conflict = self.get_task_type_entry()
         if conflict:
-            return format_response(400, 'failed', f'Task type {self.task_type} already exists', self.log)
+            return format_response(409, 'failed', f'Task type {self.task_type} already exists', self.log)
 
         # Add task type entry to task_types table in DynamoDB
         task_definition = self.add_ecs_task_definition()
@@ -173,7 +176,7 @@ class Registration():
         # Verify that the task_type exists
         exists = self.get_task_type_entry()
         if not exists:
-            return format_response(400, 'failed', f'task_type {self.task_type} does not exist', self.log)
+            return format_response(404, 'failed', f'task_type {self.task_type} does not exist', self.log)
 
         # Remove task type entry from task_types table in DynamoDB
         task_definition_arn = exists['Item']['task_definition_arn']['S']
@@ -213,9 +216,9 @@ class Registration():
         return format_response(200, 'success', 'list_task_types succeeded', None, task_types=task_types_list)
 
     def kill(self):
-        return format_response(400, 'failed', 'invalid command', self.log)
+        return format_response(405, 'failed', 'command not accepted for this resource', self.log)
 
     def update(self):
-        return format_response(400, 'failed', 'invalid command', self.log)
+        return format_response(405, 'failed', 'command not accepted for this resource', self.log)
 
 

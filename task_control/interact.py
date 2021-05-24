@@ -5,10 +5,13 @@ from datetime import datetime
 
 
 def format_response(status_code, result, message, log, **kwargs):
-    response = {'result': result, 'message': message}
+    response = {'result': result}
+    if message:
+        response['message'] = message
     if kwargs:
         for k, v in kwargs.items():
-            response[k] = v
+            if v:
+                response[k] = v
     if log:
         log['response'] = response
         print(log)
@@ -42,7 +45,7 @@ class Task:
 
     def get_task_entry(self):
         response = self.aws_dynamodb_client.get_item(
-            TableName=f'{self.campaign_id}_tasks',
+            TableName=f'{self.campaign_id}-tasks',
             Key={
                 'task_name': {'S': self.task_name}
             }
@@ -53,7 +56,7 @@ class Task:
     def set_task_busy(self, instruct_instances, instruct_instance, instruct_command, instruct_args, timestamp):
         task_status = 'busy'
         response = self.aws_dynamodb_client.update_item(
-            TableName=f'{self.campaign_id}_tasks',
+            TableName=f'{self.campaign_id}-tasks',
             Key={
                 'task_name': {'S': self.task_name}
             },

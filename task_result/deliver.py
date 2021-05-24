@@ -41,7 +41,7 @@ class Deliver:
     def add_queue_attribute(self, stime, task_name, task_context, task_type, task_instruct_instance,
                             task_instruct_command, task_instruct_args, task_attack_ip, json_payload):
         response = self.aws_dynamodb_client.update_item(
-            TableName=f'{self.campaign_id}_queue',
+            TableName=f'{self.campaign_id}-queue',
             Key={
                 'run_time': {'N': stime}
             },
@@ -65,7 +65,7 @@ class Deliver:
 
     def get_task_entry(self, task_name):
         return self.aws_dynamodb_client.get_item(
-            TableName=f'{self.campaign_id}_tasks',
+            TableName=f'{self.campaign_id}-tasks',
             Key={
                 'task_name': {'S': task_name}
             }
@@ -73,7 +73,7 @@ class Deliver:
 
     def update_task_entry(self, stime, task_name, task_status, task_end_time):
         response = self.aws_dynamodb_client.update_item(
-            TableName=f'{self.campaign_id}_tasks',
+            TableName=f'{self.campaign_id}-tasks',
             Key={
                 'task_name': {'S': task_name}
             },
@@ -90,7 +90,7 @@ class Deliver:
 
     def delete_task_entry(self, task_name):
         response = self.aws_dynamodb_client.delete_item(
-            TableName=f'{self.campaign_id}_tasks',
+            TableName=f'{self.campaign_id}-tasks',
             Key={
                 'task_name': {'S': task_name}
             }
@@ -100,7 +100,7 @@ class Deliver:
 
     def get_portgroup_entry(self, portgroup_name):
         return self.aws_dynamodb_client.get_item(
-            TableName=f'{self.campaign_id}_portgroups',
+            TableName=f'{self.campaign_id}-portgroups',
             Key={
                 'portgroup_name': {'S': portgroup_name}
             }
@@ -108,7 +108,7 @@ class Deliver:
 
     def update_portgroup_entry(self, portgroup_name, portgroup_tasks):
         response = self.aws_dynamodb_client.update_item(
-            TableName=f'{self.campaign_id}_portgroups',
+            TableName=f'{self.campaign_id}-portgroups',
             Key={
                 'portgroup_name': {'S': portgroup_name}
             },

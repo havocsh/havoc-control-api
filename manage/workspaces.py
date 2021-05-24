@@ -5,10 +5,13 @@ import boto3
 
 
 def format_response(status_code, result, message, log, **kwargs):
-    response = {'result': result, 'message': message}
+    response = {'result': result}
+    if message:
+        response['message'] = message
     if kwargs:
         for k, v in kwargs.items():
-            response[k] = v
+            if v:
+                response[k] = v
     if log:
         log['response'] = response
         print(log)
@@ -126,10 +129,10 @@ class Workspaces:
         try:
             self.file_contents.decode()
         except:
-            return format_response(400, 'failed', 'file_contents must be bytes', self.log)
+            return format_response(415, 'failed', 'file_contents must be bytes', self.log)
 
         if sys.getsizeof(self.file_contents) > 26214400:
-            return format_response(400, 'failed', 'max file size exceeded', self.log)
+            return format_response(413, 'failed', 'max file size exceeded', self.log)
 
         self.upload_object()
         return format_response(200, 'success', 'create file succeeded', None)
@@ -159,7 +162,7 @@ class Workspaces:
             return format_response(404, 'failed', 'file not found', self.log)
 
     def kill(self):
-        return format_response(400, 'failed', 'invalid request', self.log)
+        return format_response(405, 'failed', 'command not accepted for this resource', self.log)
 
     def update(self):
-        return format_response(400, 'failed', 'invalid request', self.log)
+        return format_response(405, 'failed', 'command not accepted for this resource', self.log)

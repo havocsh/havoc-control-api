@@ -3,8 +3,9 @@ import boto3, datetime, hashlib, hmac
 
 class Login:
 
-    def __init__(self, region, event):
+    def __init__(self, campaign_id, region, event):
         self.region = region
+        self.campaign_id = campaign_id
         self.event = event
         self.methodArn = event['methodArn']
         self.host = event['headers']['x-host']
@@ -27,7 +28,8 @@ class Login:
     def authorize_keys(self):
         client = boto3.client('dynamodb', region_name=self.region)
         response = client.query(
-            TableName='authorizer',
+            TableName=f'{self.campaign_id}-authorizer',
+            IndexName=f'{self.campaign_id}-ApiKeyIndex',
             KeyConditionExpression='api_key = :key',
             ExpressionAttributeValues={
                 ':key': {

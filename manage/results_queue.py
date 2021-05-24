@@ -5,10 +5,13 @@ from datetime import timedelta
 
 
 def format_response(status_code, result, message, log, **kwargs):
-    response = {'result': result, 'message': message}
+    response = {'result': result}
+    if message:
+        response['message'] = message
     if kwargs:
         for k, v in kwargs.items():
-            response[k] = v
+            if v:
+                response[k] = v
     if log:
         log['response'] = response
         print(log)
@@ -50,7 +53,7 @@ class Queue:
                     ':end_time': {'N': end_timestamp}
                 }
             response = self.aws_client.query(
-                TableName=f'{self.campaign_id}_queue',
+                TableName=f'{self.campaign_id}-queue',
                 KeyConditionExpression='run_time BETWEEN :start_time and :end_time',
                 FilterExpression=filter_expression,
                 ExpressionAttributeValues=expression_attribute_values
@@ -117,16 +120,16 @@ class Queue:
         return format_response(200, 'success', 'list queue succeeded', None, queue=queue_list)
 
     def create(self):
-        return format_response(400, 'failed', 'invalid request', self.log)
+        return format_response(405, 'failed', 'command not accepted for this resource', self.log)
 
     def delete(self):
-        return format_response(400, 'failed', 'invalid request', self.log)
+        return format_response(405, 'failed', 'command not accepted for this resource', self.log)
 
     def get(self):
-        return format_response(400, 'failed', 'invalid request', self.log)
+        return format_response(405, 'failed', 'command not accepted for this resource', self.log)
 
     def kill(self):
-        return format_response(400, 'failed', 'invalid request', self.log)
+        return format_response(405, 'failed', 'command not accepted for this resource', self.log)
 
     def update(self):
-        return format_response(400, 'failed', 'invalid request', self.log)
+        return format_response(405, 'failed', 'command not accepted for this resource', self.log)

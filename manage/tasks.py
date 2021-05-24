@@ -3,10 +3,13 @@ import boto3
 
 
 def format_response(status_code, result, message, log, **kwargs):
-    response = {'result': result, 'message': message}
+    response = {'result': result}
+    if message:
+        response['message'] = message
     if kwargs:
         for k, v in kwargs.items():
-            response[k] = v
+            if v:
+                response[k] = v
     if log:
         log['response'] = response
         print(log)
@@ -49,7 +52,7 @@ class Tasks:
 
     def get_portgroup_entry(self, portgroup_name):
         return self.aws_dynamodb_client.get_item(
-            TableName=f'{self.campaign_id}_portgroups',
+            TableName=f'{self.campaign_id}-portgroups',
             Key={
                 'portgroup_name': {'S': portgroup_name}
             }
@@ -57,7 +60,7 @@ class Tasks:
 
     def update_portgroup_entry(self, portgroup_name, portgroup_tasks):
         response = self.aws_dynamodb_client.update_item(
-            TableName=f'{self.campaign_id}_portgroups',
+            TableName=f'{self.campaign_id}-portgroups',
             Key={
                 'portgroup_name': {'S': portgroup_name}
             },
@@ -71,12 +74,12 @@ class Tasks:
 
     def query_tasks(self):
         return self.aws_dynamodb_client.query(
-            TableName=f'{self.campaign_id}_tasks',
+            TableName=f'{self.campaign_id}-tasks',
         )
 
     def get_task_entry(self):
         return self.aws_dynamodb_client.get_item(
-            TableName=f'{self.campaign_id}_tasks',
+            TableName=f'{self.campaign_id}-tasks',
             Key={
                 'task_name': {'S': self.task_name}
             }
@@ -84,7 +87,7 @@ class Tasks:
 
     def delete_task_entry(self):
         response = self.aws_dynamodb_client.delete_item(
-            TableName=f'{self.campaign_id}_tasks',
+            TableName=f'{self.campaign_id}-tasks',
             Key={
                 'task_name': {'S': self.task_name}
             }
@@ -94,7 +97,7 @@ class Tasks:
 
     def update_task_entry(self, portgroups):
         response = self.aws_dynamodb_client.update_item(
-            TableName=f'{self.campaign_id}_tasks',
+            TableName=f'{self.campaign_id}-tasks',
             Key={
                 'task_name': {'S': self.task_name}
             },
@@ -108,7 +111,7 @@ class Tasks:
 
     def stop_ecs_task(self, ecs_task_id):
         response = self.aws_ecs_client.stop_task(
-            cluster=f'{self.campaign_id}_cluster',
+            cluster=f'{self.campaign_id}-cluster',
             task=ecs_task_id,
             reason=f'Task stopped by {self.user_id}'
         )
@@ -122,11 +125,11 @@ class Tasks:
 
         task_entry = self.get_task_entry()
         if 'Item' not in task_entry:
-            return format_response(400, 'failed', f'task {self.task_name} does not exist', self.log)
+            return format_response(404, 'failed', f'task {self.task_name} does not exist', self.log)
 
         ecs_task_id = task_entry['Item']['ecs_task_id']['S']
         if ecs_task_id == 'remote_task':
-            return format_response(400, 'failed', f'task {self.task_name} is a remote task', self.log)
+            return format_response(421, 'failed', f'task {self.task_name} is a remote task', self.log)
 
         portgroups = task_entry['Item']['portgroups']['SS']
         for portgroup in portgroups:
@@ -185,13 +188,13 @@ class Tasks:
         return format_response(200, 'success', 'list tasks succeeded', None, tasks=tasks_list)
 
     def create(self):
-        return format_response(400, 'failed', 'invalid request', self.log)
+        return format_response(405, 'failed', 'command not accepted for this resource', self.log)
 
     def delete(self):
-        return format_response(400, 'failed', 'invalid request', self.log)
+        return format_response(405, 'failed', 'command not accepted for this resource', self.log)
 
     def get(self):
-        return format_response(400, 'failed', 'invalid request', self.log)
+        return format_response(405, 'failed', 'command not accepted for this resource', self.log)
 
     def update(self):
-        return format_response(400, 'failed', 'invalid request', self.log)
+        return format_response(405, 'failed', 'command not accepted for this resource', self.log)
