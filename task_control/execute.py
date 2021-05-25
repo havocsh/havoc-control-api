@@ -19,6 +19,7 @@ def format_response(status_code, result, message, log, **kwargs):
 
 
 class Task:
+
     def __init__(self, campaign_id, task_name, subnet, region, detail: dict, user_id, log):
         """
         Instantiate a Task instance

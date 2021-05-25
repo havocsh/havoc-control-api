@@ -27,7 +27,7 @@ def generate_string(length, punctuation=False):
     return rand_string
 
 
-class User():
+class User:
 
     def __init__(self, campaign_id, region, user_id, detail: dict, log):
         """

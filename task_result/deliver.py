@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 
 
 class Deliver:
+
     def __init__(self, region, campaign_id, log_events):
         self.region = region
         self.campaign_id = campaign_id

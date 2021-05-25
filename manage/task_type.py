@@ -16,7 +16,8 @@ def format_response(status_code, result, message, log, **kwargs):
     return {'statusCode': status_code, 'body': json.dumps(response)}
 
 
-class Registration():
+class Registration:
+
     def __init__(self, campaign_id, region, user_id, detail: dict, log):
         """
         Register or deregister a task_type

@@ -18,7 +18,8 @@ def format_response(status_code, result, message, log, **kwargs):
     return {'statusCode': status_code, 'body': json.dumps(response)}
 
 
-class Portgroup():
+class Portgroup:
+
     def __init__(self, campaign_id, region, user_id, detail: dict, log):
         """
         Instantiate a Portgroup instance

@@ -17,7 +17,8 @@ def format_response(status_code, result, message, log, **kwargs):
     return {'statusCode': status_code, 'body': json.dumps(response)}
 
 
-class Task():
+class Task:
+
     def __init__(self, campaign_id, region, user_id, detail: dict, log):
         """
         Register a remote task instance
