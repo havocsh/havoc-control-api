@@ -3,13 +3,12 @@ import boto3, datetime, hashlib, hmac
 
 class Login:
 
-    def __init__(self, campaign_id, region, event):
+    def __init__(self, region, campaign_id, api_domain_name, event):
         self.region = region
         self.campaign_id = campaign_id
+        self.api_domain_name = api_domain_name
         self.event = event
         self.methodArn = event['methodArn']
-        self.host = event['headers']['x-host']
-        self.url = event['headers']['x-url']
         self.api_key = event['headers']['x-api-key']
         self.sig_date = event['headers']['x-sig-date']
         self.signature = event['headers']['x-signature']
@@ -20,9 +19,9 @@ class Login:
         return hmac.new(key, msg.encode("utf-8"), hashlib.sha256).digest()
 
     def getSignatureKey(self, key, date_stamp):
-        kDate = self.sign(('havoc' + key).encode('utf-8'), date_stamp)
-        kHost = self.sign(kDate, self.host)
-        kSigning = self.sign(kHost, self.url)
+        k_date = self.sign(('havoc' + key).encode('utf-8'), date_stamp)
+        k_region = self.sign(k_date, self.region)
+        kSigning = self.sign(k_region, self.api_domain_name)
         return kSigning
 
     def authorize_keys(self):
@@ -45,12 +44,6 @@ class Login:
             resp_secret_key = response['Items'][0]['secret_key']['S']
             resp_user_id = response['Items'][0]['user_id']['S']
 
-        if not self.host:
-            self.authorized = False
-            return self.authorized
-        if not self.url:
-            self.authorized = False
-            return self.authorized
         if not self.api_key:
             self.authorized = False
             return self.authorized
@@ -75,7 +68,7 @@ class Login:
 
         # Setup string to sign
         algorithm = 'HMAC-SHA256'
-        credential_scope = local_date_stamp + '/' + self.host + '/' + self.url
+        credential_scope = local_date_stamp + '/' + self.region + '/' + self.api_domain_name
         string_to_sign = algorithm + '\n' + self.sig_date + '\n' + credential_scope + hashlib.sha256(
             resp_api_key.encode('utf-8')).hexdigest()
 
