@@ -46,9 +46,11 @@ class Login:
 
         if not self.api_key:
             self.authorized = False
+            print('Authorization failed due to missing api_key')
             return self.authorized
         if not resp_user_id:
             self.authorized = False
+            print('Authorization failed due to invalid api_key')
             return self.authorized
 
         # Create signing key elements
@@ -61,6 +63,7 @@ class Login:
         duration_in_s = duration.total_seconds()
         if duration_in_s > 5 or duration_in_s < 0:
             self.authorized = False
+            print('Authorization failed due to time delay in signature date')
             return self.authorized
 
         # Get signing_key
@@ -80,6 +83,7 @@ class Login:
             self.user_id = resp_user_id
         else:
             self.authorized = False
+            print('Authorization failed due to api_key, signature match failure')
         return self.authorized
 
     def gen_response(self):
