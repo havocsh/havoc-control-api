@@ -49,7 +49,7 @@ def lambda_handler(event, context):
     campaign_id = os.environ['CAMPAIGN_ID']
     log = {'event': event}
 
-    data = json.loads(event['body'])
+    data = event['body']
     if 'command' not in data:
         return format_response(400, 'failed', 'missing command', log)
     command = data['command']

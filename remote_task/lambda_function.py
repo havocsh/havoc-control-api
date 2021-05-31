@@ -28,7 +28,7 @@ def lambda_handler(event, context):
     detail = None
 
     user_id = event['requestContext']['authorizer']['user_id']
-    data = json.loads(event['body'])
+    data = event['body']
     try:
         command = data['command']
     except:

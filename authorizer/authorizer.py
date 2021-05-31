@@ -7,7 +7,6 @@ class Login:
         self.region = region
         self.campaign_id = campaign_id
         self.api_domain_name = api_domain_name
-        self.event = event
         self.methodArn = event['methodArn']
         self.api_key = event['headers']['x-api-key']
         self.sig_date = event['headers']['x-sig-date']
