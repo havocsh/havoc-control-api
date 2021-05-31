@@ -3,11 +3,11 @@ phases:
   build:
     commands:
       - echo Building...
-      - zip -rj authorizer.zip authorizer/.
-      - zip -rj manage.zip manage/.
-      - zip -rj remote_task.zip remote_task/.
-      - zip -rj task_control.zip task_control/.
-      - zip -rj task_result.zip task_result/.
+      - (cd authorizer && zip -r ../authorizer.zip .)
+      - (cd manage && zip -r ../manage.zip .)
+      - (cd remote_task && zip -r ../remote_task.zip .)
+      - (cd task_control && zip -r ../task_control.zip .)
+      - (cd task_result && zip -r ../task_result.zip .)
       - aws s3 cp authorizer.zip s3://$BUCKET
       - aws s3 cp manage.zip s3://$BUCKET
       - aws s3 cp remote_task.zip s3://$BUCKET
