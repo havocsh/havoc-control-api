@@ -4,12 +4,22 @@ phases:
     commands:
       - echo Building...
       - (cd authorizer && zip -r ../authorizer.zip .)
+      - shasum -a 256 authorizer.zip | cut -d ' ' -f 1 | base64 > authorizer.zip.base64sha256
       - (cd manage && zip -r ../manage.zip .)
+      - shasum -a 256 manage.zip | cut -d ' ' -f 1 | base64 > manage.zip.base64sha256
       - (cd remote_task && zip -r ../remote_task.zip .)
+      - shasum -a 256 remote_task.zip | cut -d ' ' -f 1 | base64 > remote_task.zip.base64sha256
       - (cd task_control && zip -r ../task_control.zip .)
+      - shasum -a 256 task_control.zip | cut -d ' ' -f 1 | base64 > task_control.zip.base64sha256
       - (cd task_result && zip -r ../task_result.zip .)
+      - shasum -a 256 task_result.zip | cut -d ' ' -f 1 | base64 > task_result.zip.base64sha256
       - aws s3 cp authorizer.zip s3://$BUCKET
+      - aws s3 cp authorizer.zip.base64sha256 s3://$BUCKET
       - aws s3 cp manage.zip s3://$BUCKET
+      - aws s3 cp manage.zip.base64sha256 s3://$BUCKET
       - aws s3 cp remote_task.zip s3://$BUCKET
+      - aws s3 cp remote_task.zip.base64sha256 s3://$BUCKET
       - aws s3 cp task_control.zip s3://$BUCKET
+      - aws s3 cp task_control.zip.base64sha256 s3://$BUCKET
       - aws s3 cp task_result.zip s3://$BUCKET
+      - aws s3 cp task_result.zip.base64sha256 s3://$BUCKET
