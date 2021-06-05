@@ -40,26 +40,41 @@ class Queue:
         queue_list = []
         
         def query_queue(start_timestamp, end_timestamp, task_name):
+            queue_results = {'Items': []}
+            table = self.aws_client.Table(
+                TableName=f'{self.campaign_id}-queue'
+            )
+
             if task_name:
-                filter_expression = 'task_name = :task_name'
-                expression_attribute_values = {
-                    ':task_name': {'S': task_name},
-                    ':start_time': {'N': start_timestamp},
-                    ':end_time': {'N': end_timestamp}
+                scan_kwargs = {
+                    'filter_expression': 'task_name = :task_name',
+                    'KeyConditionExpression': 'run_time BETWEEN :start_time and :end_time',
+                    'expression_attribute_values': {
+                        ':task_name': {'S': task_name},
+                        ':start_time': {'N': start_timestamp},
+                        ':end_time': {'N': end_timestamp}
+                    }
                 }
             else:
-                filter_expression = None
-                expression_attribute_values = {
-                    ':start_time': {'N': start_timestamp},
-                    ':end_time': {'N': end_timestamp}
+                scan_kwargs = {
+                    'filter_expression': None,
+                    'KeyConditionExpression': 'run_time BETWEEN :start_time and :end_time',
+                    'expression_attribute_values': {
+                        ':start_time': {'N': start_timestamp},
+                        ':end_time': {'N': end_timestamp}
+                    }
                 }
-            response = self.aws_client.query(
-                TableName=f'{self.campaign_id}-queue',
-                KeyConditionExpression='run_time BETWEEN :start_time and :end_time',
-                FilterExpression=filter_expression,
-                ExpressionAttributeValues=expression_attribute_values
-            )
-            return response
+
+            done = False
+            start_key = None
+            while not done:
+                if start_key:
+                    scan_kwargs['ExclusiveStartKey'] = start_key
+                response = table.scan(**scan_kwargs)
+                queue_results['Items'].append(response.get('Items', []))
+                start_key = response.get('LastEvaluatedKey', None)
+                done = start_key is None
+            return queue_results
 
         # Build query time range
         start_time = None

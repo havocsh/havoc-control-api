@@ -50,9 +50,21 @@ class Registration:
         return self.__aws_ecs_client
 
     def query_task_types(self):
-        return self.aws_dynamodb_client.query(
+        task_types = {'Items': []}
+        scan_kwargs = None
+        table = self.aws_dynamodb_client.Table(
             TableName=f'{self.campaign_id}-task-types'
         )
+        done = False
+        start_key = None
+        while not done:
+            if start_key:
+                scan_kwargs = {'ExclusiveStartKey': start_key}
+            response = table.scan(**scan_kwargs)
+            task_types['Items'].append(response.get('Items', []))
+            start_key = response.get('LastEvaluatedKey', None)
+            done = start_key is None
+        return task_types
 
     def get_task_type_entry(self):
         return self.aws_dynamodb_client.get_item(

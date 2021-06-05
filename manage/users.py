@@ -63,9 +63,21 @@ class User:
 
     def query_users(self):
         """Returns a list of users"""
-        return self.aws_dynamodb_client.query(
+        users = {'Items': []}
+        scan_kwargs = None
+        table = self.aws_dynamodb_client.Table(
             TableName=f'{self.campaign_id}-authorizer'
         )
+        done = False
+        start_key = None
+        while not done:
+            if start_key:
+                scan_kwargs = {'ExclusiveStartKey': start_key}
+            response = table.scan(**scan_kwargs)
+            users['Items'].append(response.get('Items', []))
+            start_key = response.get('LastEvaluatedKey', None)
+            done = start_key is None
+        return users
 
     def get_user_details(self, user_id):
         """Returns details of a user"""

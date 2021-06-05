@@ -49,9 +49,21 @@ class Portgroup:
         return self.__aws_ec2_client
 
     def query_portgroups(self):
-        return self.aws_dynamodb_client.query(
+        portgroups = {'Items': []}
+        scan_kwargs = None
+        table = self.aws_dynamodb_client.Table(
             TableName=f'{self.campaign_id}-portgroups'
         )
+        done = False
+        start_key = None
+        while not done:
+            if start_key:
+                scan_kwargs = {'ExclusiveStartKey': start_key}
+            response = table.scan(**scan_kwargs)
+            portgroups['Items'].append(response.get('Items', []))
+            start_key = response.get('LastEvaluatedKey', None)
+            done = start_key is None
+        return portgroups
 
     def get_portgroup_entry(self):
         return self.aws_dynamodb_client.get_item(

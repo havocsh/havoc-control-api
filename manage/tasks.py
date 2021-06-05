@@ -73,9 +73,21 @@ class Tasks:
         return True
 
     def query_tasks(self):
-        return self.aws_dynamodb_client.query(
-            TableName=f'{self.campaign_id}-tasks',
+        tasks = {'Items': []}
+        scan_kwargs = None
+        table = self.aws_dynamodb_client.Table(
+            TableName=f'{self.campaign_id}-tasks'
         )
+        done = False
+        start_key = None
+        while not done:
+            if start_key:
+                scan_kwargs = {'ExclusiveStartKey': start_key}
+            response = table.scan(**scan_kwargs)
+            tasks['Items'].append(response.get('Items', []))
+            start_key = response.get('LastEvaluatedKey', None)
+            done = start_key is None
+        return tasks
 
     def get_task_entry(self):
         return self.aws_dynamodb_client.get_item(
