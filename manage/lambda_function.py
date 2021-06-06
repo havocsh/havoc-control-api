@@ -5,6 +5,7 @@ import portgroups
 import results_queue
 import task_type
 import tasks
+import users
 import workspaces
 
 
@@ -28,6 +29,7 @@ def action(resource, command, region, campaign_id, user_id, detail, log):
         'queue': results_queue.Queue(campaign_id, region, user_id, detail, log),
         'task_type': task_type.Registration(campaign_id, region, user_id, detail, log),
         'task': tasks.Tasks(campaign_id, region, user_id, detail, log),
+        'user': users.Users(campaign_id, region, user_id, detail, log),
         'workspace': workspaces.Workspaces(campaign_id, region, user_id, detail, log),
     }
     r = resources[resource]
@@ -54,9 +56,17 @@ def lambda_handler(event, context):
         return format_response(400, 'failed', 'missing command', log)
     command = data['command']
 
+    allowed_commands = ['create', 'delete', 'get', 'kill', 'list', 'update']
+    if command not in allowed_commands:
+        return format_response(400, 'failed', 'invalid command', log)
+
     if 'resource' not in data:
         return format_response(400, 'failed', 'missing resource', log)
     resource = data['resource']
+
+    allowed_resources = ['portgroup', 'queue', 'task_type', 'task', 'user', 'workspace']
+    if resource not in allowed_resources:
+        return format_response(400, 'failed', 'invalid resource', log)
 
     if 'detail' in data:
         detail = data['detail']
