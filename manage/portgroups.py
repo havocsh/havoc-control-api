@@ -57,7 +57,8 @@ class Portgroup:
             if start_key:
                 scan_kwargs['ExclusiveStartKey'] = start_key
             response = self.aws_dynamodb_client.scan(**scan_kwargs)
-            portgroups['Items'].append(response.get('Items', []))
+            for item in response['Items']:
+                portgroups['Items'].append(item)
             start_key = response.get('LastEvaluatedKey', None)
             done = start_key is None
         return portgroups

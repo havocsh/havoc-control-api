@@ -70,7 +70,8 @@ class Queue:
                 if start_key:
                     scan_kwargs['ExclusiveStartKey'] = start_key
                 response = self.aws_client.scan(**scan_kwargs)
-                queue_results['Items'].append(response.get('Items', []))
+                for item in response['Items']:
+                    queue_results['Items'].append(item)
                 start_key = response.get('LastEvaluatedKey', None)
                 done = start_key is None
             return queue_results
