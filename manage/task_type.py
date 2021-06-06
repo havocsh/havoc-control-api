@@ -180,7 +180,7 @@ class Registration:
         self.add_task_type_entry(task_definition_arn)
 
         # Send response
-        return format_response(200, 'success', 'add task_type succeeded', None)
+        return format_response(200, 'success', 'create task_type succeeded', None)
 
     def delete(self):
         if 'task_type' not in self.detail:
@@ -200,7 +200,7 @@ class Registration:
         self.remove_task_type_entry()
 
         # Send response
-        return format_response(200, 'success', 'remove task_type succeeded', None)
+        return format_response(200, 'success', 'delete task_type succeeded', None)
 
     def get(self):
         if 'task_type' not in self.detail:
@@ -216,7 +216,7 @@ class Registration:
 
         # Send response
         return format_response(
-            200, 'success', 'get_task_type_capabilities succeeded', None, task_type=task_type,
+            200, 'success', 'get task_type succeeded', None, task_type=task_type,
             capabilities=capabilities, source_image=source_image, created_by=created_by, cpu=cpu, memory=memory
         )
 
@@ -228,7 +228,7 @@ class Registration:
             task_types_list.append(task_type)
 
         # Send response
-        return format_response(200, 'success', 'list_task_types succeeded', None, task_types=task_types_list)
+        return format_response(200, 'success', 'list task_type succeeded', None, task_types=task_types_list)
 
     def kill(self):
         return format_response(405, 'failed', 'command not accepted for this resource', self.log)
