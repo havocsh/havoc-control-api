@@ -39,6 +39,7 @@ class Users:
         self.detail = detail
         self.log = log
         self.manage_user_id = None
+        self.__aws_dynamodb_client = None
 
     @property
     def aws_dynamodb_client(self):
