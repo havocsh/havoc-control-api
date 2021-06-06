@@ -26,7 +26,7 @@ def lambda_handler(event, context):
     log = {'event': event}
 
     user_id = event['requestContext']['authorizer']['user_id']
-    data = event['body']
+    data = json.loads(event['body'])
 
     if 'action' not in data:
         return format_response(400, 'failed', 'request must contain valid action', log)
