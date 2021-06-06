@@ -128,6 +128,54 @@ class Tasks:
         assert response, f"stop_ecs_task failed for task_name {self.task_name}, ecs_task_id {ecs_task_id}"
         return True
 
+    def get(self):
+
+        if 'task_name' not in self.detail:
+            return format_response(400, 'failed', 'invalid detail', self.log)
+        self.task_name = self.detail['task_name']
+
+        task_entry = self.get_task_entry()
+        if 'Item' not in task_entry:
+            return format_response(404, 'failed', f'task {self.task_name} does not exist', self.log)
+
+        task_item = task_entry['Item']
+        task_name = task_item['task_name']['S']
+        task_type = task_item['task_type']['S']
+        task_context = task_item['task_context']['S']
+        task_status = task_item['task_status']['S']
+        attack_ip = task_item['attack_ip']['M']
+        attack_ip_fixup = {}
+        for key, value in attack_ip.items():
+            attack_ip_fixup[key] = value['S']
+        portgroups = task_item['portgroups']['SS']
+        instruct_instances = task_item['instruct_instances']['SS']
+        last_instruct_user_id = task_item['last_instruct_user_id']['S']
+        last_instruct_instance = task_item['last_instruct_instance']['S']
+        last_instruct_command = task_item['last_instruct_command']['S']
+        last_instruct_args = task_item['last_instruct_args']['M']
+        last_instruct_args_fixup = {}
+        for key, value in last_instruct_args.items():
+            if 'S' in value:
+                last_instruct_args_fixup[key] = value['S']
+            if 'N' in value:
+                last_instruct_args_fixup[key] = value['N']
+            if 'B' in value:
+                last_instruct_args_fixup[key] = value['B']
+        last_instruct_time = task_item['last_instruct_time']['S']
+        task_creator_user_id = task_item['user_id']['S']
+        create_time = task_item['create_time']['S']
+        scheduled_end_time = task_item['scheduled_end_time']['S']
+        ecs_task_id = task_item['ecs_task_id']
+        return format_response(
+            200, 'success', 'get task succeeded', None, task_name=task_name, task_type=task_type,
+            task_context=task_context, task_status=task_status, attack_ip=attack_ip_fixup, portgroups=portgroups,
+            instruct_instances=instruct_instances, last_instruct_user_id=last_instruct_user_id,
+            last_instruct_instance=last_instruct_instance, last_instruct_command=last_instruct_command,
+            last_instruct_args=last_instruct_args_fixup, last_instruct_time=last_instruct_time,
+            task_creator_user_id=task_creator_user_id, create_time=create_time, scheduled_end_time=scheduled_end_time,
+            ecs_task_id=ecs_task_id
+        )
+
     def kill(self):
         if 'task_name' not in self.detail:
             return format_response(400, 'failed', 'invalid detail', self.log)
@@ -155,55 +203,17 @@ class Tasks:
         return format_response(200, 'success', 'kill task succeeded', None)
 
     def list(self):
-
         tasks_list = []
-
         tasks = self.query_tasks()
         for item in tasks['Items']:
             task_name = item['task_name']['S']
-            task_type = item['task_type']['S']
-            task_context = item['task_context']['S']
-            task_status = item['task_status']['S']
-            attack_ip = item['attack_ip']['M']
-            attack_ip_fixup = {}
-            for key, value in attack_ip.items():
-                attack_ip_fixup[key] = value['S']
-            portgroups = item['portgroups']['SS']
-            instruct_instances = item['instruct_instances']['SS']
-            last_instruct_user_id = item['last_instruct_user_id']['S']
-            last_instruct_instance = item['last_instruct_instance']['S']
-            last_instruct_command = item['last_instruct_command']['S']
-            last_instruct_args = item['last_instruct_args']['M']
-            last_instruct_args_fixup = {}
-            for key, value in last_instruct_args.items():
-                if 'S' in value:
-                    last_instruct_args_fixup[key] = value['S']
-                if 'N' in value:
-                    last_instruct_args_fixup[key] = value['N']
-                if 'B' in value:
-                    last_instruct_args_fixup[key] = value['B']
-            last_instruct_time = item['last_instruct_time']['S']
-            task_creator_user_id = item['user_id']['S']
-            create_time = item['create_time']['S']
-            scheduled_end_time = item['scheduled_end_time']['S']
-            ecs_task_id = item['ecs_task_id']
-            tasks_list.append({'task_name': task_name, 'task_type': task_type, 'task_context': task_context,
-                               'task_status': task_status, 'attack_ip': attack_ip_fixup, 'portgroups': portgroups,
-                               'instruct_instances': instruct_instances, 'last_instruct_user_id': last_instruct_user_id,
-                               'last_instruct_instance': last_instruct_instance,
-                               'last_instruct_command': last_instruct_command,
-                               'last_instruct_args': last_instruct_args_fixup, 'last_instruct_time': last_instruct_time,
-                               'task_creator_user_id': task_creator_user_id, 'create_time': create_time,
-                               'scheduled_end_time': scheduled_end_time, 'ecs_task_id': ecs_task_id})
+            tasks_list.append(task_name)
         return format_response(200, 'success', 'list tasks succeeded', None, tasks=tasks_list)
 
     def create(self):
         return format_response(405, 'failed', 'command not accepted for this resource', self.log)
 
     def delete(self):
-        return format_response(405, 'failed', 'command not accepted for this resource', self.log)
-
-    def get(self):
         return format_response(405, 'failed', 'command not accepted for this resource', self.log)
 
     def update(self):

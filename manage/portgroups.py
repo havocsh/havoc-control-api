@@ -221,13 +221,7 @@ class Portgroup:
         portgroups = self.query_portgroups()
         for item in portgroups['Items']:
             self.portgroup_name = item['portgroup_name']['S']
-            description = item['portgroup_description']['S']
-            tasks = item['tasks']['SS']
-            portgroup_creator_id = item['user_id']['S']
-            create_time = item['create_time']['S']
-            portgroups_list.append({'portgroup_name': self.portgroup_name, 'portgroup_description': description,
-                                    'associated_tasks': tasks, 'portgroup_creator_id': portgroup_creator_id,
-                                    'create_time': create_time})
+            portgroups_list.append(self.portgroup_name)
         return format_response(200, 'success', 'list portgroups succeeded', None, portgroups=portgroups_list)
 
     def update(self):

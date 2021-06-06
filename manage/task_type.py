@@ -78,14 +78,17 @@ class Registration:
             Key={
                 'task_type': {'S': self.task_type}
             },
-            UpdateExpression='set task_type=:task_type, source_image=:source_image, user_id=:user_id, '
-                             'task_definition_arn=:task_definition_arn, capabilities=:capabilities',
+            UpdateExpression='set task_type=:task_type, source_image=:source_image, created_by=:created_by, '
+                             'task_definition_arn=:task_definition_arn, capabilities=:capabilities, cpu=:cpu, '
+                             'memory=:memory',
             ExpressionAttributeValues={
                 ':task_type': {'S': self.task_type},
                 ':source_image': {'S': self.source_image},
-                ':user_id': {'S': self.user_id},
+                ':created_by': {'S': self.user_id},
                 ':task_definition_arn': {'S': task_definition_arn},
-                ':capabilities': {'SS': self.capabilities}
+                ':capabilities': {'SS': self.capabilities},
+                ':cpu': {'N': self.cpu},
+                ':memory': {'N': self.memory}
             }
         )
         assert response, f"add_task_type_entry failed for task_type {self.task_type}"
@@ -203,25 +206,26 @@ class Registration:
         if 'task_type' not in self.detail:
             return format_response(400, 'failed', 'invalid detail', self.log)
         self.task_type = self.detail['task_type']
-        capabilities_list = []
-        task_type = self.get_task_type_entry()
-        task_type_capabilities = task_type['Item']['capabilities']['SS']
-        capabilities_list.append({'capabilities': task_type_capabilities})
+        task_type_entry = self.get_task_type_entry()
+        task_type = task_type_entry['Item']['task_type']['S']
+        capabilities = task_type_entry['Item']['capabilities']['SS']
+        source_image = task_type_entry['Item']['source_image']['S']
+        created_by = task_type_entry['Item']['created_by']['S']
+        cpu = task_type_entry['Item']['cpu']['N']
+        memory = task_type_entry['Item']['memory']['N']
 
         # Send response
-        return format_response(200, 'success', 'get_task_type_capabilities succeeded', None,
-                               capabilities=capabilities_list)
+        return format_response(
+            200, 'success', 'get_task_type_capabilities succeeded', None, task_type=task_type,
+            capabilities=capabilities, source_image=source_image, created_by=created_by, cpu=cpu, memory=memory
+        )
 
     def list(self):
         task_types_list = []
         task_types = self.query_task_types()
         for item in task_types['Items']:
             task_type = item['task_type']['S']
-            source_image = item['source_image']['S']
-            task_type_capabilities = item['capabilities']['SS']
-            task_type_user_id = item['user_id']['S']
-            task_types_list.append({'task_type': task_type, 'source_image': source_image,
-                                    'capabilities': task_type_capabilities, 'user_id': task_type_user_id})
+            task_types_list.append(task_type)
 
         # Send response
         return format_response(200, 'success', 'list_task_types succeeded', None, task_types=task_types_list)
