@@ -124,9 +124,6 @@ class Task:
         if 'Item' not in task_entry:
             return format_response(404, 'failed', f'task_name {self.task_name} not found', self.log)
 
-        # Get instruct_object from the task
-        task_type = task_entry['Item']['task_type']['S']
-
         # Get task capabilities from the task and validate instruct_command
         capabilities = task_entry['Item']['capabilities']['SS']
         if instruct_command not in capabilities:

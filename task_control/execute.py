@@ -83,26 +83,26 @@ class Task:
             }
         )
 
-    def get_portgroup_entry(self, portgroup_id):
+    def get_portgroup_entry(self, portgroup_name):
         return self.aws_dynamodb_client.get_item(
             TableName=f'{self.campaign_id}-portgroups',
             Key={
-                'portgroup_id': {'S': portgroup_id}
+                'portgroup_name': {'S': portgroup_name}
             }
         )
 
-    def update_portgroup_entry(self, portgroup_id, portgroup_tasks):
+    def update_portgroup_entry(self, portgroup_name, portgroup_tasks):
         response = self.aws_dynamodb_client.update_item(
             TableName=f'{self.campaign_id}-portgroups',
             Key={
-                'portgroup_id': {'S': portgroup_id}
+                'portgroup_name': {'S': portgroup_name}
             },
             UpdateExpression='set tasks=:tasks',
             ExpressionAttributeValues={
                 ':tasks': {'SS': portgroup_tasks}
             }
         )
-        assert response, f"update_portgroup_entry failed for portgroup_id {portgroup_id}"
+        assert response, f"update_portgroup_entry failed for portgroup_name {portgroup_name}"
         return True
 
     def upload_object(self, instruct_user_id, instruct_instance, instruct_command, instruct_args, end_time):
@@ -254,7 +254,7 @@ class Task:
                     portgroup_tasks.append(self.task_name)
                     self.update_portgroup_entry(portgroup, portgroup_tasks)
                 else:
-                    return format_response(404, 'failed', f'portgroup_id: {portgroup} does not exist', self.log)
+                    return format_response(404, 'failed', f'portgroup_name: {portgroup} does not exist', self.log)
         self.run_attack_task(securitygroups, end_time)
         # Log task execution details
         ecs_task_id = self.run_task_response['tasks'][0]['taskArn']
