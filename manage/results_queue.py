@@ -41,12 +41,10 @@ class Queue:
         
         def query_queue(start_timestamp, end_timestamp, task_name):
             queue_results = {'Items': []}
-            table = self.aws_client.Table(
-                TableName=f'{self.campaign_id}-queue'
-            )
 
             if task_name:
                 scan_kwargs = {
+                    'TableName': f'{self.campaign_id}-queue',
                     'filter_expression': 'task_name = :task_name',
                     'KeyConditionExpression': 'run_time BETWEEN :start_time and :end_time',
                     'expression_attribute_values': {
@@ -57,6 +55,7 @@ class Queue:
                 }
             else:
                 scan_kwargs = {
+                    'TableName': f'{self.campaign_id}-queue',
                     'filter_expression': None,
                     'KeyConditionExpression': 'run_time BETWEEN :start_time and :end_time',
                     'expression_attribute_values': {
@@ -70,7 +69,7 @@ class Queue:
             while not done:
                 if start_key:
                     scan_kwargs['ExclusiveStartKey'] = start_key
-                response = table.scan(**scan_kwargs)
+                response = self.aws_client.scan(**scan_kwargs)
                 queue_results['Items'].append(response.get('Items', []))
                 start_key = response.get('LastEvaluatedKey', None)
                 done = start_key is None

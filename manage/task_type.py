@@ -51,16 +51,13 @@ class Registration:
 
     def query_task_types(self):
         task_types = {'Items': []}
-        scan_kwargs = None
-        table = self.aws_dynamodb_client.Table(
-            TableName=f'{self.campaign_id}-task-types'
-        )
+        scan_kwargs = {'TableName': f'{self.campaign_id}-task-types'}
         done = False
         start_key = None
         while not done:
             if start_key:
-                scan_kwargs = {'ExclusiveStartKey': start_key}
-            response = table.scan(**scan_kwargs)
+                scan_kwargs['ExclusiveStartKey'] = start_key
+            response = self.aws_dynamodb_client.scan(**scan_kwargs)
             task_types['Items'].append(response.get('Items', []))
             start_key = response.get('LastEvaluatedKey', None)
             done = start_key is None
