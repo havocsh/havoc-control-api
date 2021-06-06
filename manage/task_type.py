@@ -169,14 +169,14 @@ class Registration:
         # Verify that the task_type is unique
         conflict = self.get_task_type_entry()
         if conflict:
-            return format_response(409, 'failed', f'Task type {self.task_type} already exists', self.log)
+            return format_response(409, 'failed', f'task_type {self.task_type} already exists', self.log)
 
         # Add task type entry to task_types table in DynamoDB
         task_definition = self.add_ecs_task_definition()
         if task_definition['taskDefinition']['taskDefinitionArn']:
             task_definition_arn = task_definition['taskDefinition']['taskDefinitionArn']
         else:
-            return format_response(500, 'failed', f'add_task_type failed for {self.task_type}', None)
+            return format_response(500, 'failed', f'create task_type failed for {self.task_type}', None)
         self.add_task_type_entry(task_definition_arn)
 
         # Send response
@@ -196,7 +196,7 @@ class Registration:
         task_definition_arn = exists['Item']['task_definition_arn']['S']
         remove_ecs_task = self.remove_ecs_task_definition(task_definition_arn)
         if not remove_ecs_task:
-            return format_response(500, 'failed', f'remove_task_type failed for {self.task_type}', None)
+            return format_response(500, 'failed', f'delete task_type failed for {self.task_type}', None)
         self.remove_task_type_entry()
 
         # Send response
