@@ -132,7 +132,7 @@ class Task:
             launchType='FARGATE',
             networkConfiguration={
                 'awsvpcConfiguration': {
-                    'subnets': self.subnet,
+                    'subnets': [self.subnet],
                     'securityGroups': securitygroups,
                     'assignPublicIp': 'ENABLED'
                 }
