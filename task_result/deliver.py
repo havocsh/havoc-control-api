@@ -135,10 +135,10 @@ class Deliver:
             raw = re.search('\d+-\d+-\d+ \d+:\d+:\d+\+\d+ \[-\] ({.+})', self.log_events[0]['message']).group(1)
             payload = ast.literal_eval(raw)
 
-        if payload['instruct_user'] == 'None':
+        if payload['instruct_user_id'] == 'None':
             self.user_id = payload['user_id']
         else:
-            self.user_id = payload['instruct_user']
+            self.user_id = payload['instruct_user_id']
         task_name = payload['task_name']
         task_context = payload['task_context']
         task_type = payload['task_type']
@@ -160,7 +160,7 @@ class Deliver:
         portgroups = task_entry['Item']['portgroups']['SS']
 
         # Clear out unwanted payload entries
-        del payload['instruct_user']
+        del payload['instruct_user_id']
         del payload['end_time']
         del payload['forward_log']
 
