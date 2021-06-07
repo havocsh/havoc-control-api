@@ -54,6 +54,16 @@ class Task:
         assert response, f"get_task_entry failed for task_name {self.task_name}"
         return response
 
+    def get_task_type(self, task_type):
+        response = self.aws_dynamodb_client.get_item(
+            TableName=f'{self.campaign_id}-task-types',
+            Key={
+                'task_type': {'S': task_type}
+            }
+        )
+        assert response, f"get_task_type failed for task_type {task_type}"
+        return response
+
     def set_task_busy(self, instruct_instances, instruct_instance, instruct_command, instruct_args, timestamp):
         task_status = 'busy'
         response = self.aws_dynamodb_client.update_item(
@@ -125,7 +135,9 @@ class Task:
             return format_response(404, 'failed', f'task_name {self.task_name} not found', self.log)
 
         # Get task capabilities from the task and validate instruct_command
-        capabilities = task_entry['Item']['capabilities']['SS']
+        task_type = task_entry['Item']['task_type']['S']
+        task_type_details = self.get_task_type(task_type)
+        capabilities = task_type_details['Item']['capabilities']['SS']
         if instruct_command not in capabilities:
             return format_response(400, 'failed', f'{instruct_command} not valid for task_name {self.task_name}',
                                    self.log)
