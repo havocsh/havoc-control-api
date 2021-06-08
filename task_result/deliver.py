@@ -185,17 +185,16 @@ class Deliver:
         del db_payload['attack_ip']
         del db_payload['timestamp']
         json_payload = json.dumps(db_payload)
-        if task_forward_log == 'True':
-            task_instruct_args_fixup = {}
-            for k, v in task_instruct_args.items():
-                if isinstance(v, str):
-                    task_instruct_args_fixup[k] = {'S': v}
-                if isinstance(v, int):
-                    task_instruct_args_fixup[k] = {'N': v}
-                if isinstance(v, bytes):
-                    task_instruct_args_fixup[k] = {'B': v}
-            self.add_queue_attribute(stime, task_name, task_context, task_type, task_instruct_instance,
-                                     task_instruct_command, task_instruct_args_fixup, task_attack_ip, json_payload)
+        task_instruct_args_fixup = {}
+        for k, v in task_instruct_args.items():
+            if isinstance(v, str):
+                task_instruct_args_fixup[k] = {'S': v}
+            if isinstance(v, int):
+                task_instruct_args_fixup[k] = {'N': v}
+            if isinstance(v, bytes):
+                task_instruct_args_fixup[k] = {'B': v}
+        self.add_queue_attribute(stime, task_name, task_context, task_type, task_instruct_instance,
+                                 task_instruct_command, task_instruct_args_fixup, task_attack_ip, json_payload)
         if task_instruct_command == 'terminate':
             for portgroup in portgroups:
                 if portgroup != 'None':
