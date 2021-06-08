@@ -44,15 +44,15 @@ class Deliver:
         response = self.aws_dynamodb_client.update_item(
             TableName=f'{self.campaign_id}-queue',
             Key={
-                'run_time': {'N': stime}
+                'task_name': {'S': task_name}
             },
-            UpdateExpression='set user_id=:user_id, task_name=:task_name, task_context=:task_context, '
+            UpdateExpression='set run_time=:run_time, user_id=:user_id, task_context=:task_context, '
                              'task_type=:task_type, instruct_instance=:instruct_instance, '
                              'instruct_command=:instruct_command, instruct_args=:instruct_args, attack_ip=:attack_ip, '
                              'task_result=:payload',
             ExpressionAttributeValues={
+                ':run_time': {'N': stime},
                 ':user_id': {'S': self.user_id},
-                ':task_name': {'S': task_name},
                 ':task_context': {'S': task_context},
                 ':task_type': {'S': task_type},
                 ':instruct_instance': {'S': task_instruct_instance},
