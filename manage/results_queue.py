@@ -35,46 +35,36 @@ class Queue:
             self.__aws_client = boto3.client('dynamodb', region_name=self.region)
         return self.__aws_client
 
+    def query_queue(self, start_timestamp, end_timestamp, task_name):
+        queue_results = {'Items': []}
+        scan_kwargs = {
+            'TableName': f'{self.campaign_id}-queue',
+            'FilterExpression': 'task_name = :task_name',
+            'KeyConditionExpression': 'run_time BETWEEN :start_time and :end_time',
+            'ExpressionAttributeValues': {
+                ':task_name': {'S': task_name},
+                ':start_time': {'N': start_timestamp},
+                ':end_time': {'N': end_timestamp}
+            }
+        }
+
+        done = False
+        start_key = None
+        while not done:
+            if start_key:
+                scan_kwargs['ExclusiveStartKey'] = start_key
+            response = self.aws_client.query(**scan_kwargs)
+            for item in response['Items']:
+                queue_results['Items'].append(item)
+            start_key = response.get('LastEvaluatedKey', None)
+            done = start_key is None
+        return queue_results
+
     def list(self):
+        if 'task_name' not in self.detail:
+            return format_response(400, 'failed', 'missing task_name', self.log)
 
         queue_list = []
-        
-        def query_queue(start_timestamp, end_timestamp, task_name):
-            queue_results = {'Items': []}
-
-            if task_name:
-                scan_kwargs = {
-                    'TableName': f'{self.campaign_id}-queue',
-                    'filter_expression': 'task_name = :task_name',
-                    'KeyConditionExpression': 'run_time BETWEEN :start_time and :end_time',
-                    'expression_attribute_values': {
-                        ':task_name': {'S': task_name},
-                        ':start_time': {'N': start_timestamp},
-                        ':end_time': {'N': end_timestamp}
-                    }
-                }
-            else:
-                scan_kwargs = {
-                    'TableName': f'{self.campaign_id}-queue',
-                    'filter_expression': None,
-                    'KeyConditionExpression': 'run_time BETWEEN :start_time and :end_time',
-                    'expression_attribute_values': {
-                        ':start_time': {'N': start_timestamp},
-                        ':end_time': {'N': end_timestamp}
-                    }
-                }
-
-            done = False
-            start_key = None
-            while not done:
-                if start_key:
-                    scan_kwargs['ExclusiveStartKey'] = start_key
-                response = self.aws_client.scan(**scan_kwargs)
-                for item in response['Items']:
-                    queue_results['Items'].append(item)
-                start_key = response.get('LastEvaluatedKey', None)
-                done = start_key is None
-            return queue_results
 
         # Build query time range
         start_time = None
@@ -93,16 +83,13 @@ class Queue:
         else:
             end = datetime.now()
 
-        # Assign additional query filters
-        task_name = None
-        if 'task_name' in self.detail:
-            task_name = self.detail['task_name']
-
+        # Assign query parameters
+        task_name = self.detail['task_name']
         start_timestamp = str(int(datetime.timestamp(start)))
         end_timestamp = str(int(datetime.timestamp(end)))
             
         # Run query
-        queue_data = query_queue(start_timestamp, end_timestamp, task_name)
+        queue_data = self.query_queue(start_timestamp, end_timestamp, task_name)
         if queue_data:
             for item in queue_data['Items']:
                 run_time = item['run_time']['N']
