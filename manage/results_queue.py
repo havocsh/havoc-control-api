@@ -39,8 +39,7 @@ class Queue:
         queue_results = {'Items': []}
         scan_kwargs = {
             'TableName': f'{self.campaign_id}-queue',
-            'FilterExpression': 'task_name = :task_name',
-            'KeyConditionExpression': 'run_time BETWEEN :start_time and :end_time',
+            'KeyConditionExpression': 'task_name = :task_name AND run_time BETWEEN :start_time AND :end_time',
             'ExpressionAttributeValues': {
                 ':task_name': {'S': task_name},
                 ':start_time': {'N': start_timestamp},
