@@ -2,7 +2,6 @@ import os
 import re
 import json
 import portgroups
-import results_queue
 import task_type
 import tasks
 import users
@@ -26,7 +25,6 @@ def format_response(status_code, result, message, log, **kwargs):
 def action(resource, command, region, campaign_id, user_id, detail, log):
     resources = {
         'portgroup': portgroups.Portgroup(campaign_id, region, user_id, detail, log),
-        'queue': results_queue.Queue(campaign_id, region, user_id, detail, log),
         'task_type': task_type.Registration(campaign_id, region, user_id, detail, log),
         'task': tasks.Tasks(campaign_id, region, user_id, detail, log),
         'user': users.Users(campaign_id, region, user_id, detail, log),
@@ -64,7 +62,7 @@ def lambda_handler(event, context):
         return format_response(400, 'failed', 'missing resource', log)
     resource = data['resource']
 
-    allowed_resources = ['portgroup', 'queue', 'task_type', 'task', 'user', 'workspace']
+    allowed_resources = ['portgroup', 'task_type', 'task', 'user', 'workspace']
     if resource not in allowed_resources:
         return format_response(400, 'failed', 'invalid resource', log)
 

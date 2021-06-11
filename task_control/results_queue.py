@@ -20,8 +20,9 @@ def format_response(status_code, result, message, log, **kwargs):
 
 class Queue:
 
-    def __init__(self, campaign_id, region, user_id, detail: dict, log):
+    def __init__(self, campaign_id, task_name, region, detail: dict, user_id, log):
         self.campaign_id = campaign_id
+        self.task_name = task_name
         self.region = region
         self.user_id = user_id
         self.detail = detail
@@ -35,13 +36,13 @@ class Queue:
             self.__aws_client = boto3.client('dynamodb', region_name=self.region)
         return self.__aws_client
 
-    def query_queue(self, start_timestamp, end_timestamp, task_name):
+    def query_queue(self, start_timestamp, end_timestamp):
         queue_results = {'Items': []}
         scan_kwargs = {
             'TableName': f'{self.campaign_id}-queue',
             'KeyConditionExpression': 'task_name = :task_name AND run_time BETWEEN :start_time AND :end_time',
             'ExpressionAttributeValues': {
-                ':task_name': {'S': task_name},
+                ':task_name': {'S': self.task_name},
                 ':start_time': {'N': start_timestamp},
                 ':end_time': {'N': end_timestamp}
             }
@@ -59,9 +60,7 @@ class Queue:
             done = start_key is None
         return queue_results
 
-    def list(self):
-        if 'task_name' not in self.detail:
-            return format_response(400, 'failed', 'missing task_name', self.log)
+    def get_results(self):
 
         queue_list = []
 
@@ -83,12 +82,11 @@ class Queue:
             end = datetime.now()
 
         # Assign query parameters
-        task_name = self.detail['task_name']
         start_timestamp = str(int(datetime.timestamp(start)))
         end_timestamp = str(int(datetime.timestamp(end)))
             
         # Run query
-        queue_data = self.query_queue(start_timestamp, end_timestamp, task_name)
+        queue_data = self.query_queue(start_timestamp, end_timestamp)
         if queue_data:
             for item in queue_data['Items']:
                 run_time = item['run_time']['N']
@@ -120,18 +118,3 @@ class Queue:
                                    'task_run_time': run_time})
 
         return format_response(200, 'success', 'list queue succeeded', None, queue=queue_list)
-
-    def create(self):
-        return format_response(405, 'failed', 'command not accepted for this resource', self.log)
-
-    def delete(self):
-        return format_response(405, 'failed', 'command not accepted for this resource', self.log)
-
-    def get(self):
-        return format_response(405, 'failed', 'command not accepted for this resource', self.log)
-
-    def kill(self):
-        return format_response(405, 'failed', 'command not accepted for this resource', self.log)
-
-    def update(self):
-        return format_response(405, 'failed', 'command not accepted for this resource', self.log)

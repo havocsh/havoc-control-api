@@ -3,6 +3,7 @@ import os
 import json
 import execute
 import interact
+import results_queue
 
 
 def format_response(status_code, result, message, log, **kwargs):
@@ -50,4 +51,10 @@ def lambda_handler(event, context):
         # Send instructions to existing container task
         interact_task = interact.Task(campaign_id, task_name, region, detail, user_id, log)
         response = interact_task.instruct()
+        return response
+
+    if action == 'get_results':
+        # Get results from task instructions
+        task_results = results_queue.Queue(campaign_id, task_name, region, detail, user_id, log)
+        response = task_results.get_results()
         return response
