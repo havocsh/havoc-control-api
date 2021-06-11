@@ -3,14 +3,15 @@ import ast
 import json
 import copy
 import boto3
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 
 class Deliver:
 
-    def __init__(self, region, campaign_id, log_events):
+    def __init__(self, region, campaign_id, results_queue_expiration, log_events):
         self.region = region
         self.campaign_id = campaign_id
+        self.results_queue_expiration = results_queue_expiration
         self.log_events = log_events
         self.user_id = None
         self.__aws_s3_client = None
@@ -39,7 +40,7 @@ class Deliver:
         )
         assert response, 'upload_object failed'
 
-    def add_queue_attribute(self, stime, task_name, task_context, task_type, task_instruct_instance,
+    def add_queue_attribute(self, stime, expire_time, task_name, task_context, task_type, task_instruct_instance,
                             task_instruct_command, task_instruct_args, task_attack_ip, json_payload):
         response = self.aws_dynamodb_client.update_item(
             TableName=f'{self.campaign_id}-queue',
@@ -47,10 +48,12 @@ class Deliver:
                 'task_name': {'S': task_name},
                 'run_time': {'N': stime}
             },
-            UpdateExpression='set user_id=:user_id, task_context=:task_context, task_type=:task_type, '
-                             'instruct_instance=:instruct_instance, instruct_command=:instruct_command, '
-                             'instruct_args=:instruct_args, attack_ip=:attack_ip, task_result=:payload',
+            UpdateExpression='set expire_time=:expire_time, user_id=:user_id, task_context=:task_context, '
+                             'task_type=:task_type, instruct_instance=:instruct_instance, '
+                             'instruct_command=:instruct_command, instruct_args=:instruct_args, attack_ip=:attack_ip, '
+                             'task_result=:payload',
             ExpressionAttributeValues={
+                ':expire_time': {'S': expire_time},
                 ':user_id': {'S': self.user_id},
                 ':task_context': {'S': task_context},
                 ':task_type': {'S': task_type},
@@ -122,8 +125,11 @@ class Deliver:
 
     def deliver_result(self):
         # Set vars
-        timestamp = str(self.log_events[0]['timestamp'])
-        stime = datetime.now(timezone.utc).strftime('%s')
+        current_time = self.log_events[0]['timestamp']
+        timestamp = str(current_time)
+        stime = current_time.strftime('%s')
+        expiration_time = current_time + timedelta(days=self.results_queue_expiration)
+        expiration_stime = expiration_time.strftime('%s')
 
         payload = None
         try:
@@ -193,7 +199,7 @@ class Deliver:
                 task_instruct_args_fixup[k] = {'N': v}
             if isinstance(v, bytes):
                 task_instruct_args_fixup[k] = {'B': v}
-        self.add_queue_attribute(stime, task_name, task_context, task_type, task_instruct_instance,
+        self.add_queue_attribute(stime, expiration_stime, task_name, task_context, task_type, task_instruct_instance,
                                  task_instruct_command, task_instruct_args_fixup, task_attack_ip, json_payload)
         if task_instruct_command == 'terminate':
             for portgroup in portgroups:
