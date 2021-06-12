@@ -38,7 +38,7 @@ def lambda_handler(event, context):
     detail = data['detail']
 
     if 'task_name' not in detail:
-        return format_response(400, 'failed', 'request detail must contain task_id', log)
+        return format_response(400, 'failed', 'request detail must contain task_name', log)
     task_name = detail['task_name']
 
     if action == 'execute':
