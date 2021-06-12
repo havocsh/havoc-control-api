@@ -91,9 +91,11 @@ class Queue:
             for item in queue_data['Items']:
                 run_time = item['run_time']['N']
                 task_name = item['task_name']['S']
+                task_type = item['task_type']['S']
+                task_context = item['task_context']['S']
                 task_result = item['task_result']['S']
+                attack_ip = item['attack_ip']['S']
                 instruct_user_id = item['user_id']['S']
-                instruct_object = item['instruct_object']['S']
                 instruct_instance = item['instruct_instance']['S']
                 instruct_command = item['instruct_command']['S']
                 instruct_args = item['instruct_args']['M']
@@ -105,14 +107,10 @@ class Queue:
                         instruct_args_fixup[key] = value['N']
                     if 'B' in value:
                         instruct_args_fixup[key] = value['B']
-                attack_ip = item['attack_ip']['M']
-                attack_ip_fixup = {}
-                for key, value in attack_ip.items():
-                    attack_ip_fixup[key] = value['S']
 
                 # Add queue entry to results
-                queue_list.append({'task_name': task_name, 'task_attack_ip': attack_ip,
-                                   'instruct_user_id': instruct_user_id, 'instruct_object': instruct_object,
+                queue_list.append({'task_name': task_name, 'task_type': task_type, 'task_context': task_context,
+                                   'task_attack_ip': attack_ip, 'instruct_user_id': instruct_user_id,
                                    'instruct_instance': instruct_instance, 'instruct_command': instruct_command,
                                    'instruct_args': instruct_args_fixup, 'task_result': task_result,
                                    'task_run_time': run_time})
