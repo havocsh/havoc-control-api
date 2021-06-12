@@ -9,7 +9,7 @@ from deliver import Deliver
 def lambda_handler(event, context):
     region = re.search('arn:aws:lambda:([^:]+):.*', context.invoked_function_arn).group(1)
     campaign_id = os.environ['CAMPAIGN_ID']
-    results_queue_expiration = os.environ['RESULTS_QUEUE_EXPIRATION']
+    results_queue_expiration = int(os.environ['RESULTS_QUEUE_EXPIRATION'])
     zipped = base64.b64decode(event['awslogs']['data'])
     raw = zlib.decompress(zipped, 15 + 32)
     data = json.loads(raw.decode('utf-8'))

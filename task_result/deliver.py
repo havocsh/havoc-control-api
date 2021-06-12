@@ -125,8 +125,7 @@ class Deliver:
 
     def deliver_result(self):
         # Set vars
-        current_time = self.log_events[0]['timestamp']
-        timestamp = str(current_time)
+        current_time = datetime.utcfromtimestamp(self.log_events[0]['timestamp'] / 1000)
         stime = current_time.strftime('%s')
         expiration_time = current_time + timedelta(days=self.results_queue_expiration)
         expiration_stime = expiration_time.strftime('%s')
@@ -157,8 +156,8 @@ class Deliver:
         else:
             task_end_time = 'None'
 
-        # Add timestamp to payload
-        payload['timestamp'] = timestamp
+        # Add stime to payload as timestamp
+        payload['timestamp'] = stime
 
         # Get task portgroups
         task_entry = self.get_task_entry(task_name)
