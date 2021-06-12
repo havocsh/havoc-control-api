@@ -113,6 +113,6 @@ class Queue:
                                    'task_attack_ip': attack_ip, 'instruct_user_id': instruct_user_id,
                                    'instruct_instance': instruct_instance, 'instruct_command': instruct_command,
                                    'instruct_args': instruct_args_fixup, 'task_response': task_response,
-                                   'task_run_time': run_time})
+                                   'run_time': run_time})
 
         return format_response(200, 'success', 'list queue succeeded', None, queue=queue_list)
