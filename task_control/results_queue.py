@@ -93,7 +93,7 @@ class Queue:
                 task_name = item['task_name']['S']
                 task_type = item['task_type']['S']
                 task_context = item['task_context']['S']
-                task_result = item['task_result']['S']
+                task_response = item['task_response']['S']
                 attack_ip = item['attack_ip']['S']
                 instruct_user_id = item['user_id']['S']
                 instruct_instance = item['instruct_instance']['S']
@@ -112,7 +112,7 @@ class Queue:
                 queue_list.append({'task_name': task_name, 'task_type': task_type, 'task_context': task_context,
                                    'task_attack_ip': attack_ip, 'instruct_user_id': instruct_user_id,
                                    'instruct_instance': instruct_instance, 'instruct_command': instruct_command,
-                                   'instruct_args': instruct_args_fixup, 'task_result': task_result,
+                                   'instruct_args': instruct_args_fixup, 'task_response': task_response,
                                    'task_run_time': run_time})
 
         return format_response(200, 'success', 'list queue succeeded', None, queue=queue_list)

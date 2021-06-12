@@ -74,7 +74,7 @@ class Deliver:
                 ':instruct_instance': {'S': task_instruct_instance},
                 ':instruct_command': {'S': task_instruct_command},
                 ':instruct_args': {'M': task_instruct_args},
-                ':attack_ip': {'M': task_attack_ip},
+                ':attack_ip': {'S': task_attack_ip},
                 ':payload': {'S': json_payload}
             }
         )
@@ -158,8 +158,8 @@ class Deliver:
         task_attack_ip = self.results['attack_ip']
         task_forward_log = self.results['forward_log']
 
-        if self.results['instruct_user'] != 'None':
-            self.user_id = self.results['instruct_user']
+        if self.results['instruct_user_id'] != 'None':
+            self.user_id = self.results['instruct_user_id']
         if 'end_time' in self.results:
             task_end_time = self.results['end_time']
         else:
@@ -172,6 +172,7 @@ class Deliver:
         portgroups = task_entry['Item']['portgroups']['SS']
 
         # Clear out unwanted results entries
+        del self.results['instruct_user_id']
         del self.results['end_time']
         del self.results['forward_log']
 
@@ -191,26 +192,24 @@ class Deliver:
         db_payload = copy.deepcopy(self.results)
         del db_payload['task_name']
         del db_payload['task_type']
+        del db_payload['task_context']
         del db_payload['instruct_instance']
         del db_payload['instruct_command']
         del db_payload['instruct_args']
         del db_payload['attack_ip']
         del db_payload['timestamp']
-        json_payload = json.dumps(db_payload)
-        if task_forward_log == 'True':
-            task_instruct_args_fixup = {}
-            for k, v in task_instruct_args.items():
-                if isinstance(v, str):
-                    task_instruct_args_fixup[k] = {'S': v}
-                if isinstance(v, int):
-                    task_instruct_args_fixup[k] = {'N': v}
-                if isinstance(v, bytes):
-                    task_instruct_args_fixup[k] = {'B': v}
-            task_attack_ip_fixup = {}
-            for key, value in task_attack_ip.items():
-                task_attack_ip_fixup[key] = {'S': value}
-            self.add_queue_attribute(stime, task_instruct_instance, task_instruct_command, task_instruct_args_fixup,
-                                     task_attack_ip_fixup, json_payload)
+        del db_payload['user_id']
+        json_payload = json.dumps(db_payload['task_response'])
+        task_instruct_args_fixup = {}
+        for k, v in task_instruct_args.items():
+            if isinstance(v, str):
+                task_instruct_args_fixup[k] = {'S': v}
+            if isinstance(v, int):
+                task_instruct_args_fixup[k] = {'N': v}
+            if isinstance(v, bytes):
+                task_instruct_args_fixup[k] = {'B': v}
+        self.add_queue_attribute(stime, task_instruct_instance, task_instruct_command, task_instruct_args_fixup,
+                                 task_attack_ip, json_payload)
         if task_instruct_command == 'terminate':
             for portgroup in portgroups:
                 if portgroup != 'None':
