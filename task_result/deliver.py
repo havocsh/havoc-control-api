@@ -51,7 +51,7 @@ class Deliver:
             UpdateExpression='set expire_time=:expire_time, user_id=:user_id, task_context=:task_context, '
                              'task_type=:task_type, instruct_instance=:instruct_instance, '
                              'instruct_command=:instruct_command, instruct_args=:instruct_args, attack_ip=:attack_ip, '
-                             'task_result=:payload',
+                             'task_response=:payload',
             ExpressionAttributeValues={
                 ':expire_time': {'S': expire_time},
                 ':user_id': {'S': self.user_id},
@@ -184,12 +184,14 @@ class Deliver:
         db_payload = copy.deepcopy(payload)
         del db_payload['task_name']
         del db_payload['task_type']
+        del db_payload['task_context']
         del db_payload['instruct_instance']
         del db_payload['instruct_command']
         del db_payload['instruct_args']
         del db_payload['attack_ip']
         del db_payload['timestamp']
-        json_payload = json.dumps(db_payload)
+        del db_payload['user_id']
+        json_payload = json.dumps(db_payload['task_response'])
         task_instruct_args_fixup = {}
         for k, v in task_instruct_args.items():
             if isinstance(v, str):
