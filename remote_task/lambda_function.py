@@ -23,6 +23,7 @@ def format_response(status_code, result, message, log, **kwargs):
 def lambda_handler(event, context):
     region = re.search('arn:aws:lambda:([^:]+):.*', context.invoked_function_arn).group(1)
     campaign_id = os.environ['CAMPAIGN_ID']
+    results_queue_expiration = int(os.environ['RESULTS_QUEUE_EXPIRATION'])
     log = {'event': event}
     results = None
     detail = None
@@ -47,7 +48,7 @@ def lambda_handler(event, context):
         if not detail:
             return format_response(400, 'failed', 'missing detail', log)
         else:
-            t = Task(None, campaign_id, region, user_id, detail, log)
+            t = Task(region, campaign_id, user_id, detail, log)
             response = t.registration()
             return response
 
@@ -63,6 +64,6 @@ def lambda_handler(event, context):
         if not results:
             return format_response(400, 'failed', 'missing results', log)
         else:
-            d = Deliver(campaign_id, region, user_id, results, log)
+            d = Deliver(region, campaign_id, results_queue_expiration, user_id, results, log)
             response = d.deliver_result()
             return response

@@ -8,12 +8,15 @@ from datetime import datetime, timezone, timedelta
 
 class Deliver:
 
-    def __init__(self, region, campaign_id, results_queue_expiration, log_events):
+    def __init__(self, region, campaign_id, results_queue_expiration, results):
         self.region = region
         self.campaign_id = campaign_id
         self.results_queue_expiration = results_queue_expiration
-        self.log_events = log_events
         self.user_id = None
+        self.results = results
+        self.task_name = None
+        self.task_context = None
+        self.task_type = None
         self.__aws_s3_client = None
         self.__aws_dynamodb_client = None
         self.__aws_apigw_client = None
@@ -40,45 +43,46 @@ class Deliver:
         )
         assert response, 'upload_object failed'
 
-    def add_queue_attribute(self, stime, expire_time, task_name, task_context, task_type, task_instruct_instance,
-                            task_instruct_command, task_instruct_args, task_attack_ip, json_payload):
+    def add_queue_attribute(self, stime, expire_time, task_instruct_instance, task_instruct_command, task_instruct_args,
+                            task_attack_ip, task_local_ip, json_payload):
         response = self.aws_dynamodb_client.update_item(
             TableName=f'{self.campaign_id}-queue',
             Key={
-                'task_name': {'S': task_name},
+                'task_name': {'S': self.task_name},
                 'run_time': {'N': stime}
             },
             UpdateExpression='set expire_time=:expire_time, user_id=:user_id, task_context=:task_context, '
                              'task_type=:task_type, instruct_instance=:instruct_instance, '
                              'instruct_command=:instruct_command, instruct_args=:instruct_args, attack_ip=:attack_ip, '
-                             'task_response=:payload',
+                             'local_ip=:local_ip, task_response=:payload',
             ExpressionAttributeValues={
                 ':expire_time': {'S': expire_time},
                 ':user_id': {'S': self.user_id},
-                ':task_context': {'S': task_context},
-                ':task_type': {'S': task_type},
+                ':task_context': {'S': self.task_context},
+                ':task_type': {'S': self.task_type},
                 ':instruct_instance': {'S': task_instruct_instance},
                 ':instruct_command': {'S': task_instruct_command},
                 ':instruct_args': {'M': task_instruct_args},
                 ':attack_ip': {'S': task_attack_ip},
+                ':local_ip': {'S': task_local_ip},
                 ':payload': {'S': json_payload}
             }
         )
-        assert response, f'add_queue_attribute failed for task_name {task_name}'
+        assert response, f'add_queue_attribute failed for task_name {self.task_name}'
 
-    def get_task_entry(self, task_name):
+    def get_task_entry(self):
         return self.aws_dynamodb_client.get_item(
             TableName=f'{self.campaign_id}-tasks',
             Key={
-                'task_name': {'S': task_name}
+                'task_name': {'S': self.task_name}
             }
         )
 
-    def update_task_entry(self, stime, task_name, task_status, task_end_time):
+    def update_task_entry(self, stime, task_status, task_end_time):
         response = self.aws_dynamodb_client.update_item(
             TableName=f'{self.campaign_id}-tasks',
             Key={
-                'task_name': {'S': task_name}
+                'task_name': {'S': self.task_name}
             },
             UpdateExpression='set task_status=:task_status, last_instruct_time=:last_instruct_time, '
                              'scheduled_end_time=:scheduled_end_time',
@@ -88,17 +92,17 @@ class Deliver:
                 ':scheduled_end_time': {'S': task_end_time}
             }
         )
-        assert response, f"update_task_entry failed for task_name {task_name}"
+        assert response, f"update_task_entry failed for task_name {self.task_name}"
         return True
 
-    def delete_task_entry(self, task_name):
+    def delete_task_entry(self):
         response = self.aws_dynamodb_client.delete_item(
             TableName=f'{self.campaign_id}-tasks',
             Key={
-                'task_name': {'S': task_name}
+                'task_name': {'S': self.task_name}
             }
         )
-        assert response, f"delete_task_entry failed for task_name {task_name}"
+        assert response, f"delete_task_entry failed for task_name {self.task_name}"
         return True
 
     def get_portgroup_entry(self, portgroup_name):
@@ -125,42 +129,42 @@ class Deliver:
 
     def deliver_result(self):
         # Set vars
-        current_time = datetime.utcfromtimestamp(self.log_events[0]['timestamp'] / 1000)
-        stime = current_time.strftime('%s')
-        expiration_time = current_time + timedelta(days=self.results_queue_expiration)
-        expiration_stime = expiration_time.strftime('%s')
-
         payload = None
         try:
-            payload = json.loads(self.log_events[0]['message'])
+            payload = json.loads(self.results[0]['message'])
         except:
             pass
         if not payload:
-            raw = re.search('\d+-\d+-\d+ \d+:\d+:\d+\+\d+ \[-\] ({.+})', self.log_events[0]['message']).group(1)
+            raw = re.search('\d+-\d+-\d+ \d+:\d+:\d+\+\d+ \[-\] ({.+})', self.results[0]['message']).group(1)
             payload = ast.literal_eval(raw)
 
         if payload['instruct_user_id'] == 'None':
             self.user_id = payload['user_id']
         else:
             self.user_id = payload['instruct_user_id']
-        task_name = payload['task_name']
-        task_context = payload['task_context']
-        task_type = payload['task_type']
+        self.task_name = payload['task_name']
+        self.task_context = payload['task_context']
+        self.task_type = payload['task_type']
         task_instruct_instance = payload['instruct_instance']
         task_instruct_command = payload['instruct_command']
         task_instruct_args = payload['instruct_args']
         task_attack_ip = payload['attack_ip']
+        task_local_ip = payload['local_ip']
         task_forward_log = payload['forward_log']
         if 'end_time' in payload:
             task_end_time = payload['end_time']
         else:
             task_end_time = 'None'
+        stime = payload['timestamp']
+        from_timestamp = datetime.utcfromtimestamp(stime)
+        expiration_time = from_timestamp + timedelta(days=self.results_queue_expiration)
+        expiration_stime = expiration_time.strftime('%s')
 
         # Add stime to payload as timestamp
         payload['timestamp'] = stime
 
         # Get task portgroups
-        task_entry = self.get_task_entry(task_name)
+        task_entry = self.get_task_entry()
         portgroups = task_entry['Item']['portgroups']['SS']
 
         # Clear out unwanted payload entries
@@ -189,6 +193,7 @@ class Deliver:
         del db_payload['instruct_command']
         del db_payload['instruct_args']
         del db_payload['attack_ip']
+        del db_payload['local_ip']
         del db_payload['timestamp']
         del db_payload['user_id']
         json_payload = json.dumps(db_payload['task_response'])
@@ -200,19 +205,19 @@ class Deliver:
                 task_instruct_args_fixup[k] = {'N': v}
             if isinstance(v, bytes):
                 task_instruct_args_fixup[k] = {'B': v}
-        self.add_queue_attribute(stime, expiration_stime, task_name, task_context, task_type, task_instruct_instance,
-                                 task_instruct_command, task_instruct_args_fixup, task_attack_ip, json_payload)
+        self.add_queue_attribute(stime, expiration_stime, task_instruct_instance, task_instruct_command,
+                                 task_instruct_args_fixup, task_attack_ip, task_local_ip, json_payload)
         if task_instruct_command == 'terminate':
             for portgroup in portgroups:
                 if portgroup != 'None':
                     portgroup_entry = self.get_portgroup_entry(portgroup)
                     tasks = portgroup_entry['Item']['tasks']['SS']
-                    tasks.remove(task_name)
+                    tasks.remove()
                     if not tasks:
                         tasks.append('None')
                     self.update_portgroup_entry(portgroup, tasks)
-            self.delete_task_entry(task_name)
+            self.delete_task_entry()
         else:
-            self.update_task_entry(stime, task_name, 'idle', task_end_time)
+            self.update_task_entry(stime, 'idle', task_end_time)
 
         return True

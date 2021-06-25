@@ -1,7 +1,7 @@
 import json
 import copy
 import boto3
-from datetime import datetime, timezone
+from datetime import datetime, timedelta
 
 
 def format_response(status_code, result, message, log, **kwargs):
@@ -20,9 +20,10 @@ def format_response(status_code, result, message, log, **kwargs):
 
 class Deliver:
 
-    def __init__(self, campaign_id, region, user_id, results: dict, log):
-        self.campaign_id = campaign_id
+    def __init__(self, region, campaign_id, results_queue_expiration, user_id, results: dict, log):
         self.region = region
+        self.campaign_id = campaign_id
+        self.results_queue_expiration = results_queue_expiration
         self.user_id = user_id
         self.results = results
         self.log = log
@@ -55,26 +56,28 @@ class Deliver:
         )
         assert response, 'upload_object failed'
 
-    def add_queue_attribute(self, stime, task_instruct_instance, task_instruct_command, task_instruct_args,
-                            task_attack_ip, json_payload):
+    def add_queue_attribute(self, stime, expire_time, task_instruct_instance, task_instruct_command,
+                            task_instruct_args, task_attack_ip, task_local_ip, json_payload):
         response = self.aws_dynamodb_client.update_item(
             TableName=f'{self.campaign_id}-queue',
             Key={
+                'task_name': {'S': self.task_name},
                 'run_time': {'N': stime}
             },
-            UpdateExpression='user_id=:user_id, task_name=:task_name, task_context=:task_context, '
+            UpdateExpression='expire_time=:expire_time, user_id=:user_id, task_context=:task_context, '
                              'task_type=:task_type, instruct_instance=:instruct_instance, '
                              'instruct_command=:instruct_command, instruct_args=:instruct_args, attack_ip=:attack_ip, '
-                             'task_result=:payload',
+                             'local_ip=:local_ip, task_result=:payload',
             ExpressionAttributeValues={
+                'expire_time': {'S': expire_time},
                 ':user_id': {'S': self.user_id},
-                ':task_name': {'S': self.task_name},
                 ':task_context': {'S': self.task_context},
                 ':task_type': {'S': self.task_type},
                 ':instruct_instance': {'S': task_instruct_instance},
                 ':instruct_command': {'S': task_instruct_command},
                 ':instruct_args': {'M': task_instruct_args},
                 ':attack_ip': {'S': task_attack_ip},
+                ':local_ip': {'S': task_local_ip},
                 ':payload': {'S': json_payload}
             }
         )
@@ -140,10 +143,10 @@ class Deliver:
 
     def deliver_result(self):
         # Set vars
-        stime = datetime.now(timezone.utc).strftime('%s')
         results_reqs = [
-            'task_name', 'task_context', 'task_type', 'task_instruct_instance', 'task_instruct_command',
-            'task_instruct_args', 'task_attack_ip', 'task_forward_log'
+            'task_response', 'user_id', 'task_name', 'task_context', 'task_type', 'instruct_user_id',
+            'instruct_instance', 'instruct_command', 'instruct_args', 'attack_ip', 'local_ip', 'end_time',
+            'forward_log', 'timestamp'
         ]
         for i in results_reqs:
             if i not in self.results:
@@ -156,7 +159,12 @@ class Deliver:
         task_instruct_command = self.results['instruct_command']
         task_instruct_args = self.results['instruct_args']
         task_attack_ip = self.results['attack_ip']
+        task_local_ip = self.results['local_ip']
         task_forward_log = self.results['forward_log']
+        stime = self.results['timestamp']
+        from_timestamp = datetime.utcfromtimestamp(stime)
+        expiration_time = from_timestamp + timedelta(days=self.results_queue_expiration)
+        expiration_stime = expiration_time.strftime('%s')
 
         if self.results['instruct_user_id'] != 'None':
             self.user_id = self.results['instruct_user_id']
@@ -197,6 +205,7 @@ class Deliver:
         del db_payload['instruct_command']
         del db_payload['instruct_args']
         del db_payload['attack_ip']
+        del db_payload['local_ip']
         del db_payload['timestamp']
         del db_payload['user_id']
         json_payload = json.dumps(db_payload['task_response'])
@@ -208,8 +217,8 @@ class Deliver:
                 task_instruct_args_fixup[k] = {'N': v}
             if isinstance(v, bytes):
                 task_instruct_args_fixup[k] = {'B': v}
-        self.add_queue_attribute(stime, task_instruct_instance, task_instruct_command, task_instruct_args_fixup,
-                                 task_attack_ip, json_payload)
+        self.add_queue_attribute(stime, expiration_stime, task_instruct_instance, task_instruct_command,
+                                 task_instruct_args_fixup, task_attack_ip, task_local_ip, json_payload)
         if task_instruct_command == 'terminate':
             for portgroup in portgroups:
                 if portgroup != 'None':

@@ -19,12 +19,12 @@ def format_response(status_code, result, message, log, **kwargs):
 
 class Task:
 
-    def __init__(self, campaign_id, region, user_id, detail: dict, log):
+    def __init__(self, region, campaign_id, user_id, detail: dict, log):
         """
         Register a remote task instance
         """
-        self.campaign_id = campaign_id
         self.region = region
+        self.campaign_id = campaign_id
         self.detail = detail
         self.user_id = user_id
         self.log = log
