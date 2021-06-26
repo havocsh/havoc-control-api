@@ -165,7 +165,7 @@ class Tasks:
         task_creator_user_id = task_item['user_id']['S']
         create_time = task_item['create_time']['S']
         scheduled_end_time = task_item['scheduled_end_time']['S']
-        ecs_task_id = task_item['ecs_task_id']
+        ecs_task_id = task_item['ecs_task_id']['S']
         return format_response(
             200, 'success', 'get task succeeded', None, task_name=task_name, task_type=task_type,
             task_context=task_context, task_status=task_status, attack_ip=attack_ip_fixup, portgroups=portgroups,
