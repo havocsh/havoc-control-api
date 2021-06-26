@@ -162,7 +162,7 @@ class Deliver:
         task_local_ip = self.results['local_ip']
         task_forward_log = self.results['forward_log']
         stime = self.results['timestamp']
-        from_timestamp = datetime.utcfromtimestamp(stime)
+        from_timestamp = datetime.utcfromtimestamp(int(stime))
         expiration_time = from_timestamp + timedelta(days=self.results_queue_expiration)
         expiration_stime = expiration_time.strftime('%s')
 

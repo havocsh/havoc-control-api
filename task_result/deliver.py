@@ -156,7 +156,7 @@ class Deliver:
         else:
             task_end_time = 'None'
         stime = payload['timestamp']
-        from_timestamp = datetime.utcfromtimestamp(stime)
+        from_timestamp = datetime.utcfromtimestamp(int(stime))
         expiration_time = from_timestamp + timedelta(days=self.results_queue_expiration)
         expiration_stime = expiration_time.strftime('%s')
 
