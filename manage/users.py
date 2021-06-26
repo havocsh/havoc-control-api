@@ -173,7 +173,7 @@ class Users:
 
         user_id = user_id_entry['Item']['user_id']['S']
         admin = user_id_entry['Item']['admin']['S']
-        api_key = user_id_entry['Item']['api_key']
+        api_key = user_id_entry['Item']['api_key']['S']
         return format_response(200, 'success', None, None, user_id=user_id, admin=admin, api_key=api_key)
 
     def list(self):
