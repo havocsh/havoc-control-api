@@ -82,7 +82,7 @@ class Task:
         assert response, f"Failed to initialize workspace for task_name {self.task_name}"
         return True
 
-    def add_task_entry(self, instruct_user_id, instruct_instance, instruct_command, instruct_args, attack_ip,
+    def add_task_entry(self, instruct_user_id, instruct_instance, instruct_command, instruct_args, attack_ip, local_ip,
                        portgroups, ecs_task_id, timestamp, end_time):
         task_status = 'starting'
         response = self.aws_dynamodb_client.update_item(
@@ -91,8 +91,8 @@ class Task:
                 'task_name': {'S': self.task_name}
             },
             UpdateExpression='set task_context=:task_context, task_status=:task_status, attack_ip=:attack_ip, '
-                             'portgroups=:portgroups, task_type=:task_type, instruct_instances=:instruct_instances, '
-                             'last_instruct_user_id=:last_instruct_user_id, '
+                             'local_ip=:local_ip, portgroups=:portgroups, task_type=:task_type, '
+                             'instruct_instances=:instruct_instances, last_instruct_user_id=:last_instruct_user_id, '
                              'last_instruct_instance=:last_instruct_instance, '
                              'last_instruct_command=:last_instruct_command, last_instruct_args=:last_instruct_args, '
                              'last_instruct_time=:last_instruct_time, create_time=:create_time, '
@@ -100,7 +100,8 @@ class Task:
             ExpressionAttributeValues={
                 ':task_context': {'S': self.task_context},
                 ':task_status': {'S': task_status},
-                ':attack_ip': {'M': attack_ip},
+                ':attack_ip': {'S': attack_ip},
+                ':local_ip': {'S': local_ip},
                 ':portgroups': {'SS': portgroups},
                 ':task_type': {'S': self.task_type},
                 ':instruct_instances': {'SS': [instruct_instance]},
@@ -139,6 +140,7 @@ class Task:
         self.task_context = self.detail['task_context']
         self.task_type = self.detail['task_type']
         attack_ip = self.detail['attack_ip']
+        local_ip = self.detail['local_ip']
 
         task_type_entry = self.get_task_type_entry()
         if 'Item' not in task_type_entry:
@@ -153,7 +155,7 @@ class Task:
             'task_registered': {
                 'user_id': self.user_id, 'task_name': self.task_name,
                 'task_context': self.task_context, 'task_type': self.task_type,
-                'interface_details': attack_ip
+                'interface_details': local_ip
             }
         }
         print(recorded_info)
@@ -161,14 +163,10 @@ class Task:
         timestamp = datetime.now().strftime('%s')
         self.upload_object(instruct_user_id, instruct_instance, instruct_command, instruct_args, end_time)
 
-        # Convert attack_ip for inclusion in task entry
-        attack_ip_fixup = {}
-        for key, value in attack_ip.items():
-            attack_ip_fixup[key] = {'S': value}
         instruct_args_fixup = {'no_args': {'S': 'True'}}
         # Add task entry to tasks table in DynamoDB
         self.add_task_entry(instruct_user_id, instruct_instance, instruct_command, instruct_args_fixup,
-                            attack_ip_fixup, portgroups, ecs_task_id, timestamp, end_time)
+                            attack_ip, local_ip, portgroups, ecs_task_id, timestamp, end_time)
 
         # Send response
         return format_response(200, 'success', 'register task succeeded', None)

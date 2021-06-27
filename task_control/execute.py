@@ -180,8 +180,8 @@ class Task:
                 'task_name': {'S': self.task_name}
             },
             UpdateExpression='set task_type=:task_type, task_context=:task_context, task_status=:task_status, '
-                             'attack_ip=:attack_ip, portgroups=:portgroups, instruct_instances=:instruct_instances, '
-                             'last_instruct_user_id=:last_instruct_user_id, '
+                             'attack_ip=:attack_ip, local_ip=:local_ip, portgroups=:portgroups, '
+                             'instruct_instances=:instruct_instances, last_instruct_user_id=:last_instruct_user_id, '
                              'last_instruct_instance=:last_instruct_instance, '
                              'last_instruct_command=:last_instruct_command, last_instruct_args=:last_instruct_args, '
                              'last_instruct_time=:last_instruct_time, create_time=:create_time, '
@@ -190,7 +190,8 @@ class Task:
                 ':task_type': {'S': self.task_type},
                 ':task_context': {'S': self.task_context},
                 ':task_status': {'S': task_status},
-                ':attack_ip': {'M': attack_ip},
+                ':attack_ip': {'S': attack_ip},
+                ':local_ip': {'S': 'None'},
                 ':portgroups': {'SS': portgroups},
                 ':instruct_instances': {'SS': [instruct_instance]},
                 ':last_instruct_user_id': {'S': instruct_user_id},
@@ -239,7 +240,6 @@ class Task:
         if 'Item' in conflict:
             return format_response(409, 'failed', f'{self.task_name} already exists', self.log)
 
-        attack_ip = {}
         securitygroups = []
         if 'None' not in portgroups:
             for portgroup in portgroups:
@@ -262,7 +262,7 @@ class Task:
         ecs_task_details = self.get_ecstask_details(ecs_task_id)
         interface_id = ecs_task_details['tasks'][0]['attachments'][0]['details'][1]['value']
         interface_details = self.get_interface_details(interface_id)
-        attack_ip[self.task_type] = interface_details['NetworkInterfaces'][0]['Association']['PublicIp']
+        attack_ip = interface_details['NetworkInterfaces'][0]['Association']['PublicIp']
         recorded_info = {
             'task_executed': {
                 'user_id': self.user_id, 'task_name': self.task_name, 'task_context': self.task_context,
@@ -276,13 +276,9 @@ class Task:
         timestamp = datetime.now().strftime('%s')
         self.upload_object(instruct_user_id, instruct_instance, instruct_command, instruct_args, end_time)
 
-        # Convert attack_ip for inclusion in task entry
-        attack_ip_fixup = {}
-        for key, value in attack_ip.items():
-            attack_ip_fixup[key] = {'S': value}
         instruct_args_fixup = {'no_args': {'S': 'True'}}
         # Add task entry to tasks table in DynamoDB
-        self.add_task_entry(instruct_user_id, instruct_instance, instruct_command, instruct_args_fixup, attack_ip_fixup,
+        self.add_task_entry(instruct_user_id, instruct_instance, instruct_command, instruct_args_fixup, attack_ip,
                             portgroups, ecs_task_id, timestamp, end_time)
 
         # Send response
