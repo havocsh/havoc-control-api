@@ -116,4 +116,4 @@ class Queue:
                                    'instruct_command': instruct_command, 'instruct_args': instruct_args_fixup,
                                    'task_response': task_response, 'run_time': run_time})
 
-        return format_response(200, 'success', 'list queue succeeded', None, queue=queue_list)
+        return format_response(200, 'success', 'get_results succeeded', None, queue=queue_list)
