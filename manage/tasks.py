@@ -143,10 +143,8 @@ class Tasks:
         task_type = task_item['task_type']['S']
         task_context = task_item['task_context']['S']
         task_status = task_item['task_status']['S']
-        attack_ip = task_item['attack_ip']['M']
-        attack_ip_fixup = {}
-        for key, value in attack_ip.items():
-            attack_ip_fixup[key] = value['S']
+        attack_ip = task_item['attack_ip']['S']
+        local_ip = task_item['local_ip']['S']
         portgroups = task_item['portgroups']['SS']
         instruct_instances = task_item['instruct_instances']['SS']
         last_instruct_user_id = task_item['last_instruct_user_id']['S']
@@ -168,8 +166,8 @@ class Tasks:
         ecs_task_id = task_item['ecs_task_id']['S']
         return format_response(
             200, 'success', 'get task succeeded', None, task_name=task_name, task_type=task_type,
-            task_context=task_context, task_status=task_status, attack_ip=attack_ip_fixup, portgroups=portgroups,
-            instruct_instances=instruct_instances, last_instruct_user_id=last_instruct_user_id,
+            task_context=task_context, task_status=task_status, attack_ip=attack_ip, local_ip=local_ip,
+            portgroups=portgroups, instruct_instances=instruct_instances, last_instruct_user_id=last_instruct_user_id,
             last_instruct_instance=last_instruct_instance, last_instruct_command=last_instruct_command,
             last_instruct_args=last_instruct_args_fixup, last_instruct_time=last_instruct_time,
             task_creator_user_id=task_creator_user_id, create_time=create_time, scheduled_end_time=scheduled_end_time,
