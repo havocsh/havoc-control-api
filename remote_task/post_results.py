@@ -232,5 +232,4 @@ class Deliver:
         else:
             self.update_task_entry(stime, 'idle', task_end_time)
 
-        response = {'result': 'success'}
-        return {'statusCode': 200, 'body': json.dumps(response)}
+        return format_response(200, 'success', 'post_results succeeded', None)

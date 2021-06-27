@@ -169,4 +169,4 @@ class Task:
                             attack_ip, local_ip, portgroups, ecs_task_id, timestamp, end_time)
 
         # Send response
-        return format_response(200, 'success', 'register task succeeded', None)
+        return format_response(200, 'success', 'register_task succeeded', None)
