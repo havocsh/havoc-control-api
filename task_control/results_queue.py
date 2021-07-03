@@ -93,7 +93,7 @@ class Queue:
                 task_name = item['task_name']['S']
                 task_type = item['task_type']['S']
                 task_context = item['task_context']['S']
-                task_response = item['task_response']['S']
+                instruct_command_output = item['instruct_command_output']['S']
                 attack_ip = item['attack_ip']['S']
                 local_ip = item['local_ip']['S']
                 instruct_user_id = item['user_id']['S']
@@ -114,6 +114,6 @@ class Queue:
                                    'task_attack_ip': attack_ip, 'task_local_ip': local_ip,
                                    'instruct_user_id': instruct_user_id, 'instruct_instance': instruct_instance,
                                    'instruct_command': instruct_command, 'instruct_args': instruct_args_fixup,
-                                   'task_response': task_response, 'run_time': run_time})
+                                   'instruct_command_output': instruct_command_output, 'run_time': run_time})
 
         return format_response(200, 'success', 'get_results succeeded', None, queue=queue_list)

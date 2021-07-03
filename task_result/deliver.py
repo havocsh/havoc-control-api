@@ -54,7 +54,7 @@ class Deliver:
             UpdateExpression='set expire_time=:expire_time, user_id=:user_id, task_context=:task_context, '
                              'task_type=:task_type, instruct_instance=:instruct_instance, '
                              'instruct_command=:instruct_command, instruct_args=:instruct_args, attack_ip=:attack_ip, '
-                             'local_ip=:local_ip, task_response=:payload',
+                             'local_ip=:local_ip, instruct_command_output=:payload',
             ExpressionAttributeValues={
                 ':expire_time': {'N': expire_time},
                 ':user_id': {'S': self.user_id},
@@ -176,8 +176,8 @@ class Deliver:
             s3_payload = copy.deepcopy(payload)
             if task_instruct_command == 'terminate':
                 del s3_payload['instruct_args']
-            if 'status' in s3_payload['task_response']:
-                if s3_payload['task_response']['status'] == 'ready':
+            if 'status' in s3_payload['instruct_command_output']:
+                if s3_payload['instruct_command_output']['status'] == 'ready':
                     del s3_payload['instruct_args']
 
             # Send result to S3
@@ -196,7 +196,7 @@ class Deliver:
         del db_payload['local_ip']
         del db_payload['timestamp']
         del db_payload['user_id']
-        json_payload = json.dumps(db_payload['task_response'])
+        json_payload = json.dumps(db_payload['instruct_command_output'])
         task_instruct_args_fixup = {}
         for k, v in task_instruct_args.items():
             if isinstance(v, str):
