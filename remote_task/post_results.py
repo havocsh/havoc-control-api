@@ -64,7 +64,7 @@ class Deliver:
                 'task_name': {'S': self.task_name},
                 'run_time': {'N': stime}
             },
-            UpdateExpression='expire_time=:expire_time, user_id=:user_id, task_context=:task_context, '
+            UpdateExpression='set expire_time=:expire_time, user_id=:user_id, task_context=:task_context, '
                              'task_type=:task_type, instruct_instance=:instruct_instance, '
                              'instruct_command=:instruct_command, instruct_args=:instruct_args, attack_ip=:attack_ip, '
                              'local_ip=:local_ip, task_result=:payload',
