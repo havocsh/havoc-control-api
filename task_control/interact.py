@@ -93,12 +93,13 @@ class Task:
         if end_time is None:
             payload = {
                 'instruct_user_id': self.user_id, 'instruct_instance': instruct_instance,
-                'instruct_command': instruct_command, 'instruct_args': instruct_args
+                'instruct_command': instruct_command, 'instruct_args': instruct_args, 'timestamp': timestamp
             }
         else:
             payload = {
                 'instruct_user_id': self.user_id, 'instruct_instance': instruct_instance,
-                'instruct_command': instruct_command, 'instruct_args': instruct_args, 'end_time': end_time
+                'instruct_command': instruct_command, 'instruct_args': instruct_args, 'timestamp': timestamp,
+                'end_time': end_time
             }
         payload_bytes = json.dumps(payload).encode('utf-8')
         response = self.aws_s3_client.put_object(

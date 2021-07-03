@@ -105,16 +105,17 @@ class Task:
         assert response, f"update_portgroup_entry failed for portgroup_name {portgroup_name}"
         return True
 
-    def upload_object(self, instruct_user_id, instruct_instance, instruct_command, instruct_args, end_time):
+    def upload_object(self, instruct_user_id, instruct_instance, instruct_command, instruct_args, timestamp, end_time):
         if end_time == 'None':
             payload = {
                 'instruct_user_id': instruct_user_id, 'instruct_instance': instruct_instance,
-                'instruct_command': instruct_command, 'instruct_args': instruct_args
+                'instruct_command': instruct_command, 'instruct_args': instruct_args, 'timestamp': timestamp
             }
         else:
             payload = {
                 'instruct_user_id': instruct_user_id, 'instruct_instance': instruct_instance,
-                'instruct_command': instruct_command, 'instruct_args': instruct_args, 'end_time': end_time
+                'instruct_command': instruct_command, 'instruct_args': instruct_args, 'timestamp': timestamp,
+                'end_time': end_time
             }
         payload_bytes = json.dumps(payload).encode('utf-8')
         response = self.aws_s3_client.put_object(
@@ -274,7 +275,7 @@ class Task:
         print(recorded_info)
 
         timestamp = datetime.now().strftime('%s')
-        self.upload_object(instruct_user_id, instruct_instance, instruct_command, instruct_args, end_time)
+        self.upload_object(instruct_user_id, instruct_instance, instruct_command, instruct_args, timestamp, end_time)
 
         instruct_args_fixup = {'no_args': {'S': 'True'}}
         # Add task entry to tasks table in DynamoDB

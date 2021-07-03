@@ -64,15 +64,18 @@ class Task:
             }
         )
 
-    def upload_object(self, instruct_user_id, instruct_instance, instruct_command, instruct_args, end_time):
+    def upload_object(self, instruct_user_id, instruct_instance, instruct_command, instruct_args, timestamp, end_time):
         if end_time == 'None':
-            payload = {'task_name': self.task_name, 'task_context': self.task_context, 'task_type': self.task_type,
-                       'instruct_user_id': instruct_user_id, 'instruct_instance': instruct_instance,
-                       'instruct_command': instruct_command, 'instruct_args': instruct_args}
+            payload = {
+                'instruct_user_id': instruct_user_id, 'instruct_instance': instruct_instance,
+                'instruct_command': instruct_command, 'instruct_args': instruct_args, 'timestamp': timestamp
+            }
         else:
-            payload = {'task_name': self.task_name, 'task_context': self.task_context,'task_type': self.task_type,
-                       'instruct_user_id': instruct_user_id, 'instruct_instance': instruct_instance,
-                       'instruct_command': instruct_command, 'instruct_args': instruct_args, 'end_time': end_time}
+            payload = {
+                'instruct_user_id': instruct_user_id, 'instruct_instance': instruct_instance,
+                'instruct_command': instruct_command, 'instruct_args': instruct_args, 'timestamp': timestamp,
+                'end_time': end_time
+            }
         payload_bytes = json.dumps(payload).encode('utf-8')
         response = self.aws_s3_client.put_object(
             Body=payload_bytes,
@@ -161,7 +164,7 @@ class Task:
         print(recorded_info)
 
         timestamp = datetime.now().strftime('%s')
-        self.upload_object(instruct_user_id, instruct_instance, instruct_command, instruct_args, end_time)
+        self.upload_object(instruct_user_id, instruct_instance, instruct_command, instruct_args, timestamp, end_time)
 
         instruct_args_fixup = {'no_args': {'S': 'True'}}
         # Add task entry to tasks table in DynamoDB
