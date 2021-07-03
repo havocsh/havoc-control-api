@@ -69,7 +69,7 @@ class Deliver:
                              'instruct_command=:instruct_command, instruct_args=:instruct_args, attack_ip=:attack_ip, '
                              'local_ip=:local_ip, task_result=:payload',
             ExpressionAttributeValues={
-                'expire_time': {'S': expire_time},
+                ':expire_time': {'N': expire_time},
                 ':user_id': {'S': self.user_id},
                 ':task_context': {'S': self.task_context},
                 ':task_type': {'S': self.task_type},
