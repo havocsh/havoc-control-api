@@ -19,9 +19,9 @@ def format_response(status_code, result, message, log, **kwargs):
 
 class Retrieve:
 
-    def __init__(self, campaign_id, region, detail: dict, log):
-        self.campaign_id = campaign_id
+    def __init__(self, region, campaign_id, detail: dict, log):
         self.region = region
+        self.campaign_id = campaign_id
         self.detail = detail
         self.log = log
         self.task_name = None
