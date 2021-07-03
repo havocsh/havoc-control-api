@@ -122,7 +122,7 @@ class Task:
         if 'end_time' in self.detail:
             end_time = self.detail['end_time']
         else:
-            end_time = None
+            end_time = 'None'
 
         # Validate that task exists and error if it does not
         task_entry = self.get_task_entry()
