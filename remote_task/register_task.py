@@ -124,7 +124,7 @@ class Task:
         ecs_task_id = 'remote_task'
         instruct_user_id = 'None'
         instruct_instance = 'None'
-        instruct_command = 'init'
+        instruct_command = 'Initialize'
         instruct_args = {'no_args': 'True'}
         if 'end_time' in self.detail:
             end_time = self.detail['end_time']
