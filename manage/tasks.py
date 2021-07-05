@@ -144,7 +144,7 @@ class Tasks:
         task_context = task_item['task_context']['S']
         task_status = task_item['task_status']['S']
         attack_ip = task_item['attack_ip']['S']
-        local_ip = task_item['local_ip']['S']
+        local_ip = task_item['local_ip']['SS']
         portgroups = task_item['portgroups']['SS']
         instruct_instances = task_item['instruct_instances']['SS']
         last_instruct_user_id = task_item['last_instruct_user_id']['S']

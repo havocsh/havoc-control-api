@@ -64,7 +64,7 @@ class Deliver:
                 ':instruct_command': {'S': task_instruct_command},
                 ':instruct_args': {'M': task_instruct_args},
                 ':attack_ip': {'S': task_attack_ip},
-                ':local_ip': {'S': task_local_ip},
+                ':local_ip': {'SS': task_local_ip},
                 ':payload': {'S': json_payload}
             }
         )

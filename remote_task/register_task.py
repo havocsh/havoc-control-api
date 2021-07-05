@@ -98,7 +98,7 @@ class Task:
                 ':task_context': {'S': self.task_context},
                 ':task_status': {'S': task_status},
                 ':attack_ip': {'S': attack_ip},
-                ':local_ip': {'S': local_ip},
+                ':local_ip': {'SS': local_ip},
                 ':portgroups': {'SS': portgroups},
                 ':task_type': {'S': self.task_type},
                 ':instruct_instances': {'SS': [instruct_instance]},

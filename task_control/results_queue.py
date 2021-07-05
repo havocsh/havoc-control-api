@@ -95,7 +95,7 @@ class Queue:
                 task_context = item['task_context']['S']
                 instruct_command_output = item['instruct_command_output']['S']
                 attack_ip = item['attack_ip']['S']
-                local_ip = item['local_ip']['S']
+                local_ip = item['local_ip']['SS']
                 instruct_user_id = item['user_id']['S']
                 instruct_instance = item['instruct_instance']['S']
                 instruct_command = item['instruct_command']['S']
