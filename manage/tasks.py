@@ -185,20 +185,21 @@ class Tasks:
 
         ecs_task_id = task_entry['Item']['ecs_task_id']['S']
         if ecs_task_id == 'remote_task':
-            return format_response(421, 'failed', f'task {self.task_name} is a remote task', self.log)
-
-        portgroups = task_entry['Item']['portgroups']['SS']
-        for portgroup in portgroups:
-            if portgroup != 'None':
-                portgroup_entry = self.get_portgroup_entry(portgroup)
-                tasks = portgroup_entry['Item']['tasks']['SS']
-                tasks.remove(self.task_name)
-                if not tasks:
-                    tasks.append('None')
-                self.update_portgroup_entry(portgroup, tasks)
-        self.stop_ecs_task(ecs_task_id)
-        self.delete_task_entry()
-        return format_response(200, 'success', 'kill task succeeded', None)
+            self.delete_task_entry()
+            return format_response(200, 'success', 'kill task succeeded', None)
+        else:
+            portgroups = task_entry['Item']['portgroups']['SS']
+            for portgroup in portgroups:
+                if portgroup != 'None':
+                    portgroup_entry = self.get_portgroup_entry(portgroup)
+                    tasks = portgroup_entry['Item']['tasks']['SS']
+                    tasks.remove(self.task_name)
+                    if not tasks:
+                        tasks.append('None')
+                    self.update_portgroup_entry(portgroup, tasks)
+            self.stop_ecs_task(ecs_task_id)
+            self.delete_task_entry()
+            return format_response(200, 'success', 'kill task succeeded', None)
 
     def list(self):
         tasks_list = []
