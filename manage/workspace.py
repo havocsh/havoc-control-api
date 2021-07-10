@@ -18,7 +18,7 @@ def format_response(status_code, result, message, log, **kwargs):
     return {'statusCode': status_code, 'body': json.dumps(response)}
 
 
-class Workspaces:
+class Workspace:
 
     def __init__(self, campaign_id, region, user_id, detail: dict, log):
         self.campaign_id = campaign_id

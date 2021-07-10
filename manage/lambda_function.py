@@ -5,7 +5,7 @@ import portgroups
 import task_type
 import tasks
 import users
-import workspaces
+import workspace
 
 
 def format_response(status_code, result, message, log, **kwargs):
@@ -28,7 +28,7 @@ def action(resource, command, region, campaign_id, user_id, detail, log):
         'task_type': task_type.Registration(campaign_id, region, user_id, detail, log),
         'task': tasks.Tasks(campaign_id, region, user_id, detail, log),
         'user': users.Users(campaign_id, region, user_id, detail, log),
-        'workspace': workspaces.Workspaces(campaign_id, region, user_id, detail, log),
+        'workspace': workspace.Workspace(campaign_id, region, user_id, detail, log),
     }
     r = resources[resource]
     functions = {
