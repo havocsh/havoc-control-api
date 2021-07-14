@@ -7,7 +7,7 @@ def lambda_handler(event, context):
     region = re.search('arn:aws:lambda:([^:]+):.*', context.invoked_function_arn).group(1)
     campaign_id = os.environ['CAMPAIGN_ID']
     if 'API_DOMAIN_NAME' not in os.environ:
-        api_domain_name = f'{event["apiId"]}.execute-api.{region}.amazonaws.com'
+        api_domain_name = f'{event["requestContext"]["apiId"]}.execute-api.{region}.amazonaws.com'
     else:
         api_domain_name = os.environ['API_DOMAIN_NAME']
 
