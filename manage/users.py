@@ -130,8 +130,9 @@ class Users:
         while not api_key:
             api_key = generate_string(12)
             existing_api_key = self.query_api_keys(api_key)
-            if 'Items' in existing_api_key:
-                api_key = None
+            for item in existing_api_key['Items']:
+                if 'api_key' in item:
+                    api_key = None
         secret = generate_string(24, True)
         if 'admin' in self.detail and self.detail['admin'].lower() == 'yes':
             admin = 'yes'
@@ -150,6 +151,9 @@ class Users:
             response = format_response(403, 'failed', 'not allowed', self.log)
             return response
         self.manage_user_id = self.detail['user_id']
+        if self.user_id == self.manage_user_id:
+            response = format_response(403, 'failed', f'cannot delete calling user', self.log)
+            return response
         exists = self.get_user_details(self.manage_user_id)
         if 'Item' not in exists:
             response = format_response(404, 'failed', f'user_id {self.manage_user_id} does not exist', self.log)
