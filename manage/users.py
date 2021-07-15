@@ -20,7 +20,7 @@ def format_response(status_code, result, message, log, **kwargs):
 def generate_string(length, punctuation=False):
     assert type(length) is int and length > 0, "length must be an int greater than zero"
     if punctuation:
-        id_characters = string.ascii_letters + string.digits + string.punctuation
+        id_characters = string.ascii_letters + string.digits + '~!@#$%^&*_-+=,.<>;:'
     else:
         id_characters = string.ascii_letters + string.digits
     rand_string = ''.join(random.choice(id_characters) for i in range(length))
@@ -191,8 +191,27 @@ class Users:
     def update(self):
         calling_user = self.get_user_details(self.user_id)
         if calling_user['Item']['admin']['S'] != 'yes':
-            response = format_response(403, 'failed', 'not allowed', self.log)
-            return response
+            if 'reset_keys' in self.detail and self.user_id == self.detail['user_id']:
+                self.manage_user_id = self.detail['user_id']
+                user_attributes = {}
+                api_key = None
+                while not api_key:
+                    api_key = generate_string(12)
+                    existing_api_key = self.query_api_keys(api_key)
+                    for item in existing_api_key['Items']:
+                        if 'api_key' in item:
+                            api_key = None
+                secret = generate_string(24, True)
+                user_attributes['api_key'] = api_key
+                user_attributes['secret'] = secret
+                self.add_user_attribute(user_attributes)
+                response = format_response(
+                    200, 'success', None, self.log, user_id=self.manage_user_id, api_key=api_key, secret=secret
+                )
+                return response
+            else:
+                response = format_response(403, 'failed', 'not allowed', self.log)
+                return response
         self.manage_user_id = self.detail['user_id']
         exists = self.get_user_details(self.manage_user_id)
         if 'Item' not in exists:
@@ -210,8 +229,9 @@ class Users:
             while not api_key:
                 api_key = generate_string(12)
                 existing_api_key = self.query_api_keys(api_key)
-                if 'Items' in existing_api_key:
-                    api_key = None
+                for item in existing_api_key['Items']:
+                    if 'api_key' in item:
+                        api_key = None
             secret = generate_string(24, True)
         if 'admin' in self.detail:
             admin = self.detail['admin']
