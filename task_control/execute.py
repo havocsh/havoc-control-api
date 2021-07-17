@@ -253,7 +253,7 @@ class Task:
         self.run_attack_task(securitygroups, end_time)
         # Log task execution details
         ecs_task_id = self.run_task_response['tasks'][0]['taskArn']
-        t.sleep(10)
+        t.sleep(15)
         ecs_task_details = self.get_ecstask_details(ecs_task_id)
         interface_id = ecs_task_details['tasks'][0]['attachments'][0]['details'][1]['value']
         interface_details = self.get_interface_details(interface_id)
