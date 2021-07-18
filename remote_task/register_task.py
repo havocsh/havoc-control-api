@@ -138,6 +138,8 @@ class Task:
         self.task_type = self.detail['task_type']
         attack_ip = self.detail['attack_ip']
         local_ip = self.detail['local_ip']
+        if not isinstance(local_ip, list):
+            return format_response(400, 'failed', 'local_ip must be of type list', self.log)
 
         task_type_entry = self.get_task_type_entry()
         if 'Item' not in task_type_entry:
