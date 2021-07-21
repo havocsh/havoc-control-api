@@ -60,7 +60,7 @@ class Login:
         # Ensure sig_date is within the last 5 seconds
         duration = t - sig_date
         duration_in_s = duration.total_seconds()
-        if duration_in_s > 5 or duration_in_s < 0:
+        if duration_in_s > 10 or duration_in_s < 0:
             self.authorized = False
             print('Authorization failed due to time delay in signature date')
             return self.authorized
