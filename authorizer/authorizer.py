@@ -3,11 +3,11 @@ import boto3, datetime, hashlib, hmac
 
 class Login:
 
-    def __init__(self, region, campaign_id, api_domain_name, event):
+    def __init__(self, region, campaign_id, api_domain_name, account_id, api_id, event):
         self.region = region
         self.campaign_id = campaign_id
         self.api_domain_name = api_domain_name
-        self.methodArn = event['methodArn']
+        self.api_arn = f'arn:aws:execute-api:{region}:{account_id}:{api_id}/havoc_sh/*/*'
         self.api_key = event['headers']['x-api-key']
         self.sig_date = event['headers']['x-sig-date']
         self.signature = event['headers']['x-signature']
@@ -94,7 +94,7 @@ class Login:
                 "Statement": [{
                     "Action": "execute-api:Invoke",
                     "Effect": effect,
-                    "Resource": self.methodArn
+                    "Resource": self.api_arn
                 }],
             }
 
