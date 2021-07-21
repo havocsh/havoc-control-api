@@ -202,7 +202,7 @@ class Deliver:
             if isinstance(v, str):
                 task_instruct_args_fixup[k] = {'S': v}
             if isinstance(v, int):
-                task_instruct_args_fixup[k] = {'N': v}
+                task_instruct_args_fixup[k] = {'N': str(v)}
             if isinstance(v, bytes):
                 task_instruct_args_fixup[k] = {'B': v}
         self.add_queue_attribute(stime, expiration_stime, task_instruct_instance, task_instruct_command,
