@@ -111,15 +111,15 @@ class Task:
         except:
             return format_response(400, 'failed', 'missing instruct_command', self.log)
 
-        if 'instruct_instance' in self.detail:
+        if 'instruct_instance' in self.detail and self.detail['instruct_instance']:
             instruct_instance = self.detail['instruct_instance']
         else:
             instruct_instance = 'havoc'
-        if 'instruct_args' in self.detail:
+        if 'instruct_args' in self.detail and self.detail['instruct_args']:
             instruct_args = self.detail['instruct_args']
         else:
             instruct_args = {'no_args': 'True'}
-        if 'end_time' in self.detail:
+        if 'end_time' in self.detail and self.detail['end_time']:
             end_time = self.detail['end_time']
         else:
             end_time = 'None'
