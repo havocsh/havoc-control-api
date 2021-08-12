@@ -120,6 +120,7 @@ class Portgroup:
             return False
 
     def update_portgroup_entry(self, securitygroup_id, ip_ranges, port, ip_protocol, portgroup_action):
+        response = None
         if portgroup_action == 'add':
             response = self.aws_ec2_client.authorize_security_group_ingress(
                 GroupId=securitygroup_id,
@@ -132,7 +133,7 @@ class Portgroup:
                     }
                 ]
             )
-        else:
+        if portgroup_action == 'remove':
             response = self.aws_ec2_client.revoke_security_group_ingress(
                 GroupId=securitygroup_id,
                 IpPermissions=[
@@ -232,9 +233,13 @@ class Portgroup:
 
         self.portgroup_name = self.detail['portgroup_name']
         portgroup_action = self.detail['portgroup_action']
+        if portgroup_action not in ['add', 'remove']:
+            return format_response(400, 'failed', 'invalid portgroup_action', self.log)
         ip_ranges = self.detail['ip_ranges']
         port = self.detail['port']
         ip_protocol = self.detail['ip_protocol']
+        if ip_protocol not in ['tcp', 'udp', 'icmp']:
+            return format_response(400, 'failed', 'invalid ip_protocol', self.log)
 
         if port == 55553:
             return format_response(400, 'failed', 'port 55553 is reserved', self.log)
