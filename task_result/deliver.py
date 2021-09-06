@@ -17,16 +17,8 @@ class Deliver:
         self.task_name = None
         self.task_context = None
         self.task_type = None
-        self.__aws_s3_client = None
         self.__aws_dynamodb_client = None
         self.__aws_apigw_client = None
-
-    @property
-    def aws_s3_client(self):
-        """Returns the boto3 S3 session (establishes one automatically if one does not already exist)"""
-        if self.__aws_s3_client is None:
-            self.__aws_s3_client = boto3.client('s3', region_name=self.region)
-        return self.__aws_s3_client
 
     @property
     def aws_dynamodb_client(self):
@@ -34,14 +26,6 @@ class Deliver:
         if self.__aws_dynamodb_client is None:
             self.__aws_dynamodb_client = boto3.client('dynamodb', region_name=self.region)
         return self.__aws_dynamodb_client
-
-    def upload_object(self, payload_bytes, stime):
-        response = self.aws_s3_client.put_object(
-            Body=payload_bytes,
-            Bucket=f'{self.campaign_id}-logging',
-            Key=stime + '.txt'
-        )
-        assert response, 'upload_object failed'
 
     def add_queue_attribute(self, stime, expire_time, task_instruct_instance, task_instruct_command, task_instruct_args,
                             task_attack_ip, task_local_ip, json_payload):
@@ -171,18 +155,6 @@ class Deliver:
         del payload['instruct_user_id']
         del payload['end_time']
         del payload['forward_log']
-
-        if task_forward_log == 'True':
-            s3_payload = copy.deepcopy(payload)
-            if task_instruct_command == 'terminate':
-                del s3_payload['instruct_args']
-            if 'status' in s3_payload['instruct_command_output']:
-                if s3_payload['instruct_command_output']['status'] == 'ready':
-                    del s3_payload['instruct_args']
-
-            # Send result to S3
-            payload_bytes = json.dumps(s3_payload).encode('utf-8')
-            self.upload_object(payload_bytes, stime)
 
         # Add job to results queue
         db_payload = copy.deepcopy(payload)

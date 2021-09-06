@@ -27,7 +27,6 @@ class Tasks:
         self.task_name = None
         self.__aws_dynamodb_client = None
         self.__aws_ecs_client = None
-        self.__aws_ec2_client = None
 
     @property
     def aws_dynamodb_client(self):
@@ -42,13 +41,6 @@ class Tasks:
         if self.__aws_ecs_client is None:
             self.__aws_ecs_client = boto3.client('ecs', region_name=self.region)
         return self.__aws_ecs_client
-
-    @property
-    def aws_ec2_client(self):
-        """Returns the boto3 EC2 session (establishes one automatically if one does not already exist)"""
-        if self.__aws_ec2_client is None:
-            self.__aws_ec2_client = boto3.client('ec2', region_name=self.region)
-        return self.__aws_ec2_client
 
     def get_portgroup_entry(self, portgroup_name):
         return self.aws_dynamodb_client.get_item(
