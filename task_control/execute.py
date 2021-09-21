@@ -38,6 +38,7 @@ class Task:
         self.__aws_ecs_client = None
         self.__aws_ec2_client = None
         self.__aws_s3_client = None
+        self.__aws_route53_client = None
 
     @property
     def aws_dynamodb_client(self):
@@ -66,6 +67,45 @@ class Task:
         if self.__aws_s3_client is None:
             self.__aws_s3_client = boto3.client('s3', region_name=self.region)
         return self.__aws_s3_client
+
+    @property
+    def aws_route53_client(self):
+        """Returns the boto3 Route53 session for this project (establishes one automatically if one does not already exist)"""
+        if self.__aws_route53_client is None:
+            self.__aws_route53_client = boto3.client('route53')
+        return self.__aws_route53_client
+
+    def get_domain_entry(self, domain_name):
+        return self.aws_dynamodb_client.get_item(
+            TableName=f'{self.campaign_id}-domains',
+            Key={
+                'domain_name': {'S': domain_name}
+            }
+        )
+
+    def create_resource_record(self, hosted_zone, host_name, ip_address):
+        response = self.aws_route53_client.change_resource_record_sets(
+            HostedZoneId=hosted_zone,
+            ChangeBatch={
+                'Changes': [
+                    {
+                        'Action': 'UPSERT',
+                        'ResourceRecordSet':{
+                            'Name': host_name,
+                            'Type': 'A',
+                            'TTL': 300,
+                            'ResourceRecords': [
+                                {
+                                    'Value': ip_address
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        )
+        if response:
+            return True
 
     def get_task_type_entry(self):
         return self.aws_dynamodb_client.get_item(
@@ -166,8 +206,8 @@ class Task:
         assert response, f"get_interface_details failed for task_name {self.task_name}"
         return response
 
-    def add_task_entry(self, instruct_user_id, instruct_instance, instruct_command, instruct_args, attack_ip,
-                       portgroups, ecs_task_id, timestamp, end_time):
+    def add_task_entry(self, instruct_user_id, instruct_instance, instruct_command, instruct_args, task_host_name,
+                       task_domain_name, attack_ip, portgroups, ecs_task_id, timestamp, end_time):
         task_status = 'starting'
         response = self.aws_dynamodb_client.update_item(
             TableName=f'{self.campaign_id}-tasks',
@@ -175,8 +215,9 @@ class Task:
                 'task_name': {'S': self.task_name}
             },
             UpdateExpression='set task_type=:task_type, task_context=:task_context, task_status=:task_status, '
-                             'attack_ip=:attack_ip, local_ip=:local_ip, portgroups=:portgroups, '
-                             'instruct_instances=:instruct_instances, last_instruct_user_id=:last_instruct_user_id, '
+                             'task_host_name=:task_host_name, task_domain_name=:task_domain_name, attack_ip=:attack_ip,'
+                             'local_ip=:local_ip, portgroups=:portgroups, instruct_instances=:instruct_instances, '
+                             'last_instruct_user_id=:last_instruct_user_id, '
                              'last_instruct_instance=:last_instruct_instance, '
                              'last_instruct_command=:last_instruct_command, last_instruct_args=:last_instruct_args, '
                              'last_instruct_time=:last_instruct_time, create_time=:create_time, '
@@ -185,6 +226,8 @@ class Task:
                 ':task_type': {'S': self.task_type},
                 ':task_context': {'S': self.task_context},
                 ':task_status': {'S': task_status},
+                ':task_host_name': {'S': task_host_name},
+                ':task_domain_name': {'S': task_domain_name},
                 ':attack_ip': {'S': attack_ip},
                 ':local_ip': {'SS': ['None']},
                 ':portgroups': {'SS': portgroups},
@@ -212,15 +255,7 @@ class Task:
         if 'Item' not in task_type_entry:
             return format_response(404, 'failed', f'task_type {self.task_type} does not exist', self.log)
 
-        instruct_user_id = 'None'
-        instruct_instance = 'None'
-        instruct_command = 'Initialize'
-        instruct_args = {'no_args': 'True'}
-        if 'end_time' in self.detail:
-            end_time = self.detail['end_time']
-        else:
-            end_time = 'None'
-
+        # If portgroups are requested, do some sanity checks.
         if 'portgroups' in self.detail:
             portgroups = self.detail['portgroups']
             if not isinstance(portgroups, list):
@@ -230,10 +265,25 @@ class Task:
         else:
             portgroups = ['None']
 
-        # Verify that the task_name is unique
+        # Verify that the task_name is unique.
         conflict = self.get_task_entry()
         if 'Item' in conflict:
             return format_response(409, 'failed', f'{self.task_name} already exists', self.log)
+
+        task_host_name = 'None'
+        task_domain_name = 'None'
+        task_hosted_zone = None
+        # If host_name and domain_name are present in the run_task request, make sure the domain_name exists
+        # and the host_name does not already exist for another task.
+        if 'domain_name' in self.detail and 'host_name' in self.detail:
+            task_domain_name = self.detail['domain_name']
+            task_host_name = self.detail['host_name']
+            domain_entry = self.get_domain_entry(task_domain_name)
+            if 'Item' not in domain_entry:
+                return format_response(404, 'failed', f'domain_name {task_domain_name} does not exist', self.log)
+            if task_host_name in domain_entry['Item']['host_names']['SS']:
+                return format_response(409, 'failed', f'{task_host_name} already exists', self.log)
+            task_hosted_zone = domain_entry['Item']['hosted_zone']['S']
 
         securitygroups = []
         if 'None' not in portgroups:
@@ -268,13 +318,26 @@ class Task:
         }
         print(recorded_info)
 
+        # Send Initialize command to the task
+        instruct_user_id = 'None'
+        instruct_instance = 'None'
+        instruct_command = 'Initialize'
+        instruct_args = {'no_args': 'True'}
+        if 'end_time' in self.detail:
+            end_time = self.detail['end_time']
+        else:
+            end_time = 'None'
         timestamp = datetime.now().strftime('%s')
         self.upload_object(instruct_user_id, instruct_instance, instruct_command, instruct_args, timestamp, end_time)
 
-        instruct_args_fixup = {'no_args': {'S': 'True'}}
+        # Create a Route53 resource record if a host_name/domain_name is requested for the task.
+        if task_host_name != 'None' and task_domain_name != 'None':
+            self.create_resource_record(task_hosted_zone, task_host_name, attack_ip)
+
         # Add task entry to tasks table in DynamoDB
-        self.add_task_entry(instruct_user_id, instruct_instance, instruct_command, instruct_args_fixup, attack_ip,
-                            portgroups, ecs_task_id, timestamp, end_time)
+        instruct_args_fixup = {'no_args': {'S': 'True'}}
+        self.add_task_entry(instruct_user_id, instruct_instance, instruct_command, instruct_args_fixup, task_host_name,
+                            task_domain_name, attack_ip, portgroups, ecs_task_id, timestamp, end_time)
 
         # Send response
         return format_response(200, 'success', 'execute task succeeded', None, attack_ip=attack_ip)

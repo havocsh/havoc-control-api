@@ -82,14 +82,17 @@ class Task:
     def add_task_entry(self, instruct_user_id, instruct_instance, instruct_command, instruct_args, attack_ip, local_ip,
                        portgroups, ecs_task_id, timestamp, end_time):
         task_status = 'starting'
+        task_host_name = 'None'
+        task_domain_name = 'None'
         response = self.aws_dynamodb_client.update_item(
             TableName=f'{self.campaign_id}-tasks',
             Key={
                 'task_name': {'S': self.task_name}
             },
-            UpdateExpression='set task_context=:task_context, task_status=:task_status, attack_ip=:attack_ip, '
-                             'local_ip=:local_ip, portgroups=:portgroups, task_type=:task_type, '
-                             'instruct_instances=:instruct_instances, last_instruct_user_id=:last_instruct_user_id, '
+            UpdateExpression='set task_context=:task_context, task_status=:task_status, task_host_name=:task_host_name '
+                             'task_domain_name=:task_domain_name, attack_ip=:attack_ip, local_ip=:local_ip, '
+                             'portgroups=:portgroups, task_type=:task_type, instruct_instances=:instruct_instances, '
+                             'last_instruct_user_id=:last_instruct_user_id, '
                              'last_instruct_instance=:last_instruct_instance, '
                              'last_instruct_command=:last_instruct_command, last_instruct_args=:last_instruct_args, '
                              'last_instruct_time=:last_instruct_time, create_time=:create_time, '
@@ -97,6 +100,8 @@ class Task:
             ExpressionAttributeValues={
                 ':task_context': {'S': self.task_context},
                 ':task_status': {'S': task_status},
+                ':task_host_name': {'S': task_host_name},
+                ':task_domain_name': {'S': task_domain_name},
                 ':attack_ip': {'S': attack_ip},
                 ':local_ip': {'SS': local_ip},
                 ':portgroups': {'SS': portgroups},

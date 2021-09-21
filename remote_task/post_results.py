@@ -42,6 +42,8 @@ class Deliver:
 
     def add_queue_attribute(self, stime, expire_time, task_instruct_instance, task_instruct_command,
                             task_instruct_args, task_attack_ip, task_local_ip, json_payload):
+        task_host_name = 'None'
+        task_domain_name = 'None'
         response = self.aws_dynamodb_client.update_item(
             TableName=f'{self.campaign_id}-queue',
             Key={
@@ -50,8 +52,9 @@ class Deliver:
             },
             UpdateExpression='set expire_time=:expire_time, user_id=:user_id, task_context=:task_context, '
                              'task_type=:task_type, instruct_instance=:instruct_instance, '
-                             'instruct_command=:instruct_command, instruct_args=:instruct_args, attack_ip=:attack_ip, '
-                             'local_ip=:local_ip, instruct_command_output=:payload',
+                             'instruct_command=:instruct_command, instruct_args=:instruct_args,'
+                             'task_host_name=:task_host_name, task_domain_name=:task_domain_name,'
+                             'attack_ip=:attack_ip, local_ip=:local_ip, instruct_command_output=:payload',
             ExpressionAttributeValues={
                 ':expire_time': {'N': expire_time},
                 ':user_id': {'S': self.user_id},
@@ -60,6 +63,8 @@ class Deliver:
                 ':instruct_instance': {'S': task_instruct_instance},
                 ':instruct_command': {'S': task_instruct_command},
                 ':instruct_args': {'M': task_instruct_args},
+                ':task_host_name': {'S': task_host_name},
+                ':task_domain_name': {'S': task_domain_name},
                 ':attack_ip': {'S': task_attack_ip},
                 ':local_ip': {'SS': task_local_ip},
                 ':payload': {'S': json_payload}
@@ -144,7 +149,6 @@ class Deliver:
         task_instruct_args = self.results['instruct_args']
         task_attack_ip = self.results['attack_ip']
         task_local_ip = self.results['local_ip']
-        task_forward_log = self.results['forward_log']
         stime = self.results['timestamp']
         from_timestamp = datetime.utcfromtimestamp(int(stime))
         expiration_time = from_timestamp + timedelta(days=self.results_queue_expiration)

@@ -27,6 +27,7 @@ class Tasks:
         self.task_name = None
         self.__aws_dynamodb_client = None
         self.__aws_ecs_client = None
+        self.__aws_route53_client = None
 
     @property
     def aws_dynamodb_client(self):
@@ -41,6 +42,60 @@ class Tasks:
         if self.__aws_ecs_client is None:
             self.__aws_ecs_client = boto3.client('ecs', region_name=self.region)
         return self.__aws_ecs_client
+
+    @property
+    def aws_route53_client(self):
+        """Returns the boto3 Route53 session (establishes one automatically if one does not already exist)"""
+        if self.__aws_route53_client is None:
+            self.__aws_route53_client = boto3.client('route53', region_name=self.region)
+        return self.__aws_route53_client
+
+    def get_domain_entry(self, domain_name):
+        return self.aws_dynamodb_client.get_item(
+            TableName=f'{self.campaign_id}-domains',
+            Key={
+                'domain_name': {'S': domain_name}
+            }
+        )
+
+    def update_domain_entry(self, domain_name, domain_tasks, host_names):
+        response = self.aws_dynamodb_client.update_item(
+            TableName=f'{self.campaign_id}-domains',
+            Key={
+                'domain_name': {'S': domain_name}
+            },
+            UpdateExpression='set tasks=:tasks, host_names=:host_names',
+            ExpressionAttributeValues={
+                ':tasks': {'SS': domain_tasks},
+                ':host_names': {'SS': host_names}
+            }
+        )
+        assert response, f"update_domain_entry failed for domain_name {domain_name}"
+        return True
+
+    def delete_resource_record_set(self, hosted_zone, host_name, ip_address):
+        response = self.aws_route53_client.change_resource_record_sets(
+            HostedZoneId=hosted_zone,
+            ChangeBatch={
+                'Changes': [
+                    {
+                        'Action': 'DELETE',
+                        'ResourceRecordSet': {
+                            'Name': host_name,
+                            'Type': 'A',
+                            'TTL': 300,
+                            'ResourceRecords': [
+                                {
+                                    'Value': ip_address
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        )
+        if response:
+            return True
 
     def get_portgroup_entry(self, portgroup_name):
         return self.aws_dynamodb_client.get_item(
@@ -156,6 +211,8 @@ class Tasks:
         create_time = task_item['create_time']['S']
         scheduled_end_time = task_item['scheduled_end_time']['S']
         ecs_task_id = task_item['ecs_task_id']['S']
+        task_host_name = task_item['task_host_name']['S']
+        task_domain_name = task_item['task_domain_name']['S']
         return format_response(
             200, 'success', 'get task succeeded', None, task_name=task_name, task_type=task_type,
             task_context=task_context, task_status=task_status, attack_ip=attack_ip, local_ip=local_ip,
@@ -163,7 +220,7 @@ class Tasks:
             last_instruct_instance=last_instruct_instance, last_instruct_command=last_instruct_command,
             last_instruct_args=last_instruct_args_fixup, last_instruct_time=last_instruct_time,
             task_creator_user_id=task_creator_user_id, create_time=create_time, scheduled_end_time=scheduled_end_time,
-            ecs_task_id=ecs_task_id
+            ecs_task_id=ecs_task_id, task_host_name=task_host_name, task_domain_name=task_domain_name
         )
 
     def kill(self):
@@ -190,6 +247,22 @@ class Tasks:
                         tasks.append('None')
                     self.update_portgroup_entry(portgroup, tasks)
             self.stop_ecs_task(ecs_task_id)
+            if task_entry['Item']['domain_name']['S'] != 'None':
+                task_attack_ip = task_entry['Item']['attack_ip']['S']
+                task_host_name = task_entry['Item']['task_host_name']['S']
+                task_domain_name = task_entry['Item']['task_domain_name']
+                domain_entry = self.get_domain_entry(task_domain_name)
+                hosted_zone = domain_entry['Item']['hosted_zone']['S']
+                tasks = domain_entry['Item']['tasks']['SS']
+                tasks.remove(self.task_name)
+                if not tasks:
+                    tasks.append('None')
+                domain_host_names = domain_entry['Item']['host_names']['SS']
+                domain_host_names.remove(task_host_name)
+                if not domain_host_names:
+                    domain_host_names.append('None')
+                self.update_domain_entry(task_domain_name, tasks, domain_host_names)
+                self.delete_resource_record_set(hosted_zone, task_host_name, task_attack_ip)
             self.delete_task_entry()
             return format_response(200, 'success', 'kill task succeeded', None)
 

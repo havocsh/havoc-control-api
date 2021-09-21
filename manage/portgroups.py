@@ -43,7 +43,7 @@ class Portgroup:
 
     @property
     def aws_ec2_client(self):
-        """Returns the boto3 ECS session (establishes one automatically if one does not already exist)"""
+        """Returns the boto3 EC2 session (establishes one automatically if one does not already exist)"""
         if self.__aws_ec2_client is None:
             self.__aws_ec2_client = boto3.client('ec2', region_name=self.region)
         return self.__aws_ec2_client

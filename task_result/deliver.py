@@ -27,8 +27,62 @@ class Deliver:
             self.__aws_dynamodb_client = boto3.client('dynamodb', region_name=self.region)
         return self.__aws_dynamodb_client
 
+    @property
+    def aws_route53_client(self):
+        """Returns the boto3 Route53 session (establishes one automatically if one does not already exist)"""
+        if self.__aws_route53_client is None:
+            self.__aws_route53_client = boto3.client('route53', region_name=self.region)
+        return self.__aws_route53_client
+
+    def get_domain_entry(self, domain_name):
+        return self.aws_dynamodb_client.get_item(
+            TableName=f'{self.campaign_id}-domains',
+            Key={
+                'domain_name': {'S': domain_name}
+            }
+        )
+
+    def update_domain_entry(self, domain_name, domain_tasks, host_names):
+        response = self.aws_dynamodb_client.update_item(
+            TableName=f'{self.campaign_id}-domains',
+            Key={
+                'domain_name': {'S': domain_name}
+            },
+            UpdateExpression='set tasks=:tasks, host_names=:host_names',
+            ExpressionAttributeValues={
+                ':tasks': {'SS': domain_tasks},
+                ':host_names': {'SS': host_names}
+            }
+        )
+        assert response, f"update_domain_entry failed for domain_name {domain_name}"
+        return True
+
+    def delete_resource_record_set(self, hosted_zone, host_name, ip_address):
+        response = self.aws_route53_client.change_resource_record_sets(
+            HostedZoneId=hosted_zone,
+            ChangeBatch={
+                'Changes': [
+                    {
+                        'Action': 'DELETE',
+                        'ResourceRecordSet': {
+                            'Name': host_name,
+                            'Type': 'A',
+                            'TTL': 300,
+                            'ResourceRecords': [
+                                {
+                                    'Value': ip_address
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        )
+        if response:
+            return True
+
     def add_queue_attribute(self, stime, expire_time, task_instruct_instance, task_instruct_command, task_instruct_args,
-                            task_attack_ip, task_local_ip, json_payload):
+                            task_host_name, task_domain_name, task_attack_ip, task_local_ip, json_payload):
         response = self.aws_dynamodb_client.update_item(
             TableName=f'{self.campaign_id}-queue',
             Key={
@@ -37,8 +91,9 @@ class Deliver:
             },
             UpdateExpression='set expire_time=:expire_time, user_id=:user_id, task_context=:task_context, '
                              'task_type=:task_type, instruct_instance=:instruct_instance, '
-                             'instruct_command=:instruct_command, instruct_args=:instruct_args, attack_ip=:attack_ip, '
-                             'local_ip=:local_ip, instruct_command_output=:payload',
+                             'instruct_command=:instruct_command, instruct_args=:instruct_args, '
+                             'task_host_name=:task_host_name, task_domain_name=:task_domain_name, '
+                             'attack_ip=:attack_ip, local_ip=:local_ip, instruct_command_output=:payload',
             ExpressionAttributeValues={
                 ':expire_time': {'N': expire_time},
                 ':user_id': {'S': self.user_id},
@@ -47,6 +102,8 @@ class Deliver:
                 ':instruct_instance': {'S': task_instruct_instance},
                 ':instruct_command': {'S': task_instruct_command},
                 ':instruct_args': {'M': task_instruct_args},
+                ':task_host_name': {'S': task_host_name},
+                ':task_domain_name': {'S': task_domain_name},
                 ':attack_ip': {'S': task_attack_ip},
                 ':local_ip': {'SS': task_local_ip},
                 ':payload': {'S': json_payload}
@@ -134,7 +191,6 @@ class Deliver:
         task_instruct_args = payload['instruct_args']
         task_attack_ip = payload['attack_ip']
         task_local_ip = payload['local_ip']
-        task_forward_log = payload['forward_log']
         if 'end_time' in payload:
             task_end_time = payload['end_time']
         else:
@@ -150,6 +206,8 @@ class Deliver:
         # Get task portgroups
         task_entry = self.get_task_entry()
         portgroups = task_entry['Item']['portgroups']['SS']
+        task_host_name = task_entry['Item']['task_host_name']['S']
+        task_domain_name = task_entry['Item']['task_domain_name']['S']
 
         # Clear out unwanted payload entries
         del payload['instruct_user_id']
@@ -178,7 +236,8 @@ class Deliver:
             if isinstance(v, bytes):
                 task_instruct_args_fixup[k] = {'B': v}
         self.add_queue_attribute(stime, expiration_stime, task_instruct_instance, task_instruct_command,
-                                 task_instruct_args_fixup, task_attack_ip, task_local_ip, json_payload)
+                                 task_instruct_args_fixup, task_host_name, task_domain_name, task_attack_ip,
+                                 task_local_ip, json_payload)
         if task_instruct_command == 'terminate':
             for portgroup in portgroups:
                 if portgroup != 'None':
@@ -188,6 +247,19 @@ class Deliver:
                     if not tasks:
                         tasks.append('None')
                     self.update_portgroup_entry(portgroup, tasks)
+            if task_host_name != 'None':
+                domain_entry = self.get_domain_entry(task_domain_name)
+                hosted_zone = domain_entry['Item']['hosted_zone']['S']
+                tasks = domain_entry['Item']['tasks']['SS']
+                tasks.remove(self.task_name)
+                if not tasks:
+                    tasks.append('None')
+                domain_host_names = domain_entry['Item']['host_names']['SS']
+                domain_host_names.remove(task_host_name)
+                if not domain_host_names:
+                    domain_host_names.append('None')
+                self.update_domain_entry(task_domain_name, tasks, domain_host_names)
+                self.delete_resource_record_set(hosted_zone, task_host_name, task_attack_ip)
             self.delete_task_entry()
         else:
             self.update_task_entry(stime, 'idle', task_end_time)
