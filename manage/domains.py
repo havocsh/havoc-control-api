@@ -71,16 +71,24 @@ class Domain:
             }
         )
 
+    def verify_hosted_zone(self):
+        try:
+            response = self.aws_route53_client(
+                Id=self.hosted_zone
+            )
+        except:
+            return False
+        if response:
+            if response['HostedZone']['Name'] == self.domain_name:
+                return True
+            else:
+                return False
+        return False
+
     def create_domain_entry(self):
         api_domain = 'no'
         tasks = 'None'
         host_names = 'None'
-        try:
-            self.aws_route53_client(
-                Id=self.hosted_zone
-            )
-        except:
-            return 'invalid hosted_zone'
         response = self.aws_dynamodb_client.update_item(
             TableName=f'{self.campaign_id}-domains',
             Key={
@@ -125,13 +133,13 @@ class Domain:
         if 'Item' in conflict:
             return format_response(409, 'failed', f'{self.domain_name} already exists', self.log)
 
-        response = self.create_domain_entry()
-        if response == 'invalid hosted_zone':
+        valid_domain = self.verify_hosted_zone()
+        if not valid_domain:
             return format_response(404, 'failed', f'hosted_zone {self.hosted_zone} does not exist', self.log)
-        elif response:
+        response = self.create_domain_entry()
+        if response:
             return format_response(200, 'success', 'create domain succeeded', None)
-        else:
-            return format_response(500, 'failed', 'create domain failed', self.log)
+        return format_response(500, 'failed', 'create domain failed', self.log)
 
     def delete(self):
         if 'domain_name' not in self.detail:
