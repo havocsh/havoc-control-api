@@ -281,8 +281,8 @@ class Task:
         # If host_name and domain_name are present in the run_task request, make sure the domain_name exists
         # and the host_name does not already exist for another task.
         if 'task_domain_name' in self.detail and 'task_host_name' in self.detail:
-            task_domain_name = self.detail['domain_name']
-            task_host_name = self.detail['host_name']
+            task_domain_name = self.detail['task_domain_name']
+            task_host_name = self.detail['task_host_name']
             if task_domain_name != 'None':
                 domain_entry = self.get_domain_entry(task_domain_name)
                 if 'Item' not in domain_entry:
