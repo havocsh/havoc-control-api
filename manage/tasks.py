@@ -204,6 +204,8 @@ class Tasks:
                 last_instruct_args_fixup[key] = value['S']
             if 'N' in value:
                 last_instruct_args_fixup[key] = value['N']
+            if 'BOOL' in value:
+                last_instruct_args_fixup[key] = value['BOOL']
             if 'B' in value:
                 last_instruct_args_fixup[key] = value['B']
         last_instruct_time = task_item['last_instruct_time']['S']
@@ -247,7 +249,7 @@ class Tasks:
                         tasks.append('None')
                     self.update_portgroup_entry(portgroup, tasks)
             self.stop_ecs_task(ecs_task_id)
-            if task_entry['Item']['domain_name']['S'] != 'None':
+            if task_entry['Item']['task_domain_name']['S'] != 'None':
                 task_attack_ip = task_entry['Item']['attack_ip']['S']
                 task_host_name = task_entry['Item']['task_host_name']['S']
                 task_domain_name = task_entry['Item']['task_domain_name']

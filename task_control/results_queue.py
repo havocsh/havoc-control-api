@@ -106,6 +106,8 @@ class Queue:
                         instruct_args_fixup[key] = value['S']
                     if 'N' in value:
                         instruct_args_fixup[key] = value['N']
+                    if 'BOOL' in value:
+                        instruct_args_fixup[key] = value['BOOL']
                     if 'B' in value:
                         instruct_args_fixup[key] = value['B']
 

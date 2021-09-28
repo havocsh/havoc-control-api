@@ -280,15 +280,16 @@ class Task:
         task_hosted_zone = None
         # If host_name and domain_name are present in the run_task request, make sure the domain_name exists
         # and the host_name does not already exist for another task.
-        if 'domain_name' in self.detail and 'host_name' in self.detail:
+        if 'task_domain_name' in self.detail and 'task_host_name' in self.detail:
             task_domain_name = self.detail['domain_name']
             task_host_name = self.detail['host_name']
-            domain_entry = self.get_domain_entry(task_domain_name)
-            if 'Item' not in domain_entry:
-                return format_response(404, 'failed', f'domain_name {task_domain_name} does not exist', self.log)
-            if task_host_name in domain_entry['Item']['host_names']['SS']:
-                return format_response(409, 'failed', f'{task_host_name} already exists', self.log)
-            task_hosted_zone = domain_entry['Item']['hosted_zone']['S']
+            if task_domain_name != 'None':
+                domain_entry = self.get_domain_entry(task_domain_name)
+                if 'Item' not in domain_entry:
+                    return format_response(404, 'failed', f'domain_name {task_domain_name} does not exist', self.log)
+                if task_host_name in domain_entry['Item']['host_names']['SS']:
+                    return format_response(409, 'failed', f'{task_host_name} already exists', self.log)
+                task_hosted_zone = domain_entry['Item']['hosted_zone']['S']
 
         securitygroups = []
         if 'None' not in portgroups:
