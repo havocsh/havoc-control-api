@@ -157,8 +157,10 @@ class Task:
         for k, v in instruct_args.items():
             if isinstance(v, str):
                 instruct_args_fixup[k] = {'S': f'{v}'}
-            if isinstance(v, int):
+            if isinstance(v, int) and not isinstance(v, bool):
                 instruct_args_fixup[k] = {'N': f'{v}'}
+            if isinstance(v, bool):
+                instruct_args_fixup[k] = {'BOOL': v}
             if isinstance(v, bytes):
                 instruct_args_fixup[k] = {'B': f'{v}'}
 
