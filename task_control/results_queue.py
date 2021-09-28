@@ -93,6 +93,8 @@ class Queue:
                 task_name = item['task_name']['S']
                 task_type = item['task_type']['S']
                 task_context = item['task_context']['S']
+                task_host_name = item['task_host_name']['S']
+                task_domain_name = item['task_domain_name']['S']
                 instruct_command_output = item['instruct_command_output']['S']
                 attack_ip = item['attack_ip']['S']
                 local_ip = item['local_ip']['SS']
@@ -113,6 +115,7 @@ class Queue:
 
                 # Add queue entry to results
                 queue_list.append({'task_name': task_name, 'task_type': task_type, 'task_context': task_context,
+                                   'task_host_name': task_host_name, 'task_domain_name': task_domain_name,
                                    'task_attack_ip': attack_ip, 'task_local_ip': local_ip,
                                    'instruct_user_id': instruct_user_id, 'instruct_instance': instruct_instance,
                                    'instruct_command': instruct_command, 'instruct_args': instruct_args_fixup,

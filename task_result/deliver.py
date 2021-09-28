@@ -245,7 +245,7 @@ class Deliver:
                 if portgroup != 'None':
                     portgroup_entry = self.get_portgroup_entry(portgroup)
                     tasks = portgroup_entry['Item']['tasks']['SS']
-                    tasks.remove()
+                    tasks.remove(self.task_name)
                     if not tasks:
                         tasks.append('None')
                     self.update_portgroup_entry(portgroup, tasks)
