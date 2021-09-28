@@ -129,10 +129,12 @@ class Portgroup:
                         'FromPort': port,
                         'ToPort': port,
                         'IpProtocol': ip_protocol,
-                        'IpRanges': {
+                        'IpRanges': [
+                            {
                             'CidrIp': ip_ranges,
                             'Description': self.user_id
-                        }
+                            }
+                        ]
                     }
                 ]
             )
@@ -144,10 +146,12 @@ class Portgroup:
                         'FromPort': port,
                         'ToPort': port,
                         'IpProtocol': ip_protocol,
-                        'IpRanges': {
+                        'IpRanges': [
+                            {
                             'CidrIp': ip_ranges,
                             'Description': self.user_id
-                        }
+                            }
+                        ]
                     }
                 ]
             )
