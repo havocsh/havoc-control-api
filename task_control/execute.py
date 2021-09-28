@@ -265,6 +265,11 @@ class Task:
         else:
             portgroups = ['None']
 
+        if 'end_time' in self.detail and self.detail['end_time']:
+            end_time = self.detail['end_time']
+        else:
+            end_time = 'None'
+
         # Verify that the task_name is unique.
         conflict = self.get_task_entry()
         if 'Item' in conflict:
