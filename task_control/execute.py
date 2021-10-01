@@ -107,6 +107,23 @@ class Task:
         )
         if response:
             return True
+        else:
+            return False
+
+    def update_domain_entry(self, domain_name, tasks):
+        response = self.aws_dynamodb_client.update_item(
+            TableName=f'{self.campaign_id}-domains',
+            Key={
+                'domain_name': {'S': domain_name}
+            },
+            UpdateExpression='set tasks=:tasks',
+            ExpressionAttributeValues={
+                ':tasks': {'SS': tasks}
+            }
+        )
+        assert response, f"update_domain_entry failed for domain_name {domain_name}"
+        return True
+
 
     def get_task_type_entry(self):
         return self.aws_dynamodb_client.get_item(
@@ -279,6 +296,7 @@ class Task:
         task_host_name = 'None'
         task_domain_name = 'None'
         task_hosted_zone = None
+        domain_entry = None
         # If host_name and domain_name are present in the run_task request, make sure the domain_name exists
         # and the host_name does not already exist for another task.
         if 'task_domain_name' in self.detail and 'task_host_name' in self.detail:
@@ -333,7 +351,7 @@ class Task:
         recorded_info = {
             'task_executed': {
                 'user_id': self.user_id, 'task_name': self.task_name, 'task_context': self.task_context,
-                'task_type': self.task_type
+                'task_type': self.task_type, 'task_domain_name': task_domain_name, 'task_host_name': task_host_name
             },
             'task_details': ecs_task_details,
             'interface_details': attack_ip
@@ -355,6 +373,12 @@ class Task:
         # Create a Route53 resource record if a host_name/domain_name is requested for the task.
         if task_host_name != 'None' and task_domain_name != 'None':
             self.create_resource_record(task_hosted_zone, task_host_name, task_domain_name, attack_ip)
+            if 'None' in domain_entry['Item']['tasks']['SS']:
+                domain_tasks = []
+            else:
+                domain_tasks = domain_entry['Item']['tasks']['SS']
+            domain_tasks.append(self.task_name)
+            self.update_domain_entry(task_domain_name, domain_tasks)
 
         # Add task entry to tasks table in DynamoDB
         instruct_args_fixup = {'no_args': {'S': 'True'}}
