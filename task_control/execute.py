@@ -1,3 +1,4 @@
+import re
 import json
 import boto3
 from datetime import datetime
@@ -83,7 +84,7 @@ class Task:
             }
         )
 
-    def create_resource_record(self, hosted_zone, host_name, ip_address):
+    def create_resource_record(self, hosted_zone, host_name, domain_name, ip_address):
         response = self.aws_route53_client.change_resource_record_sets(
             HostedZoneId=hosted_zone,
             ChangeBatch={
@@ -91,7 +92,7 @@ class Task:
                     {
                         'Action': 'UPSERT',
                         'ResourceRecordSet':{
-                            'Name': host_name,
+                            'Name': f'{host_name}.{domain_name}',
                             'Type': 'A',
                             'TTL': 300,
                             'ResourceRecords': [
@@ -284,12 +285,27 @@ class Task:
             task_domain_name = self.detail['task_domain_name']
             task_host_name = self.detail['task_host_name']
             if task_domain_name != 'None':
+                length = len(f'{task_host_name}.{task_domain_name}')
+                if length > 253:
+                    return format_response(
+                        400, 'failed', f'{task_host_name}.{task_domain_name} cannot exceed 253 characters', self.log
+                    )
+                valid_host_name = re.compile(
+                    '^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*'
+                    '([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$'
+                )
+                host_name_match = valid_host_name.match(f'{task_host_name}.{task_domain_name}')
+                if not host_name_match:
+                    return format_response(
+                        400, 'failed', f'{task_host_name}.{task_domain_name} is not DNS compliant', self.log
+                    )
                 domain_entry = self.get_domain_entry(task_domain_name)
                 if 'Item' not in domain_entry:
                     return format_response(404, 'failed', f'domain_name {task_domain_name} does not exist', self.log)
                 if task_host_name in domain_entry['Item']['host_names']['SS']:
                     return format_response(409, 'failed', f'{task_host_name} already exists', self.log)
                 task_hosted_zone = domain_entry['Item']['hosted_zone']['S']
+                task_domain_name = domain_entry['Item']['domain_name']['S']
 
         securitygroups = []
         if 'None' not in portgroups:
@@ -338,7 +354,7 @@ class Task:
 
         # Create a Route53 resource record if a host_name/domain_name is requested for the task.
         if task_host_name != 'None' and task_domain_name != 'None':
-            self.create_resource_record(task_hosted_zone, task_host_name, attack_ip)
+            self.create_resource_record(task_hosted_zone, task_host_name, task_domain_name, attack_ip)
 
         # Add task entry to tasks table in DynamoDB
         instruct_args_fixup = {'no_args': {'S': 'True'}}
