@@ -110,20 +110,20 @@ class Task:
         else:
             return False
 
-    def update_domain_entry(self, domain_name, tasks):
+    def update_domain_entry(self, domain_name, domain_tasks, host_names):
         response = self.aws_dynamodb_client.update_item(
             TableName=f'{self.campaign_id}-domains',
             Key={
                 'domain_name': {'S': domain_name}
             },
-            UpdateExpression='set tasks=:tasks',
+            UpdateExpression='set tasks=:tasks, host_names=:host_names',
             ExpressionAttributeValues={
-                ':tasks': {'SS': tasks}
+                ':tasks': {'SS': domain_tasks},
+                ':host_names': {'SS': host_names}
             }
         )
         assert response, f"update_domain_entry failed for domain_name {domain_name}"
         return True
-
 
     def get_task_type_entry(self):
         return self.aws_dynamodb_client.get_item(
@@ -378,7 +378,12 @@ class Task:
             else:
                 domain_tasks = domain_entry['Item']['tasks']['SS']
             domain_tasks.append(self.task_name)
-            self.update_domain_entry(task_domain_name, domain_tasks)
+            if 'None' in domain_entry['Item']['host_names']['SS']:
+                domain_host_names = []
+            else:
+                domain_host_names = domain_entry['Item']['host_names']['SS']
+            domain_host_names.append(task_host_name)
+            self.update_domain_entry(task_domain_name, domain_tasks, domain_host_names)
 
         # Add task entry to tasks table in DynamoDB
         instruct_args_fixup = {'no_args': {'S': 'True'}}
