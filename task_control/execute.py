@@ -323,7 +323,6 @@ class Task:
                 if task_host_name in domain_entry['Item']['host_names']['SS']:
                     return format_response(409, 'failed', f'{task_host_name} already exists', self.log)
                 task_hosted_zone = domain_entry['Item']['hosted_zone']['S']
-                task_domain_name = domain_entry['Item']['domain_name']['S']
 
         securitygroups = []
         if 'None' not in portgroups:
