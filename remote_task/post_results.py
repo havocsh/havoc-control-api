@@ -31,7 +31,6 @@ class Deliver:
         self.task_context = None
         self.task_type = None
         self.__aws_dynamodb_client = None
-        self.__aws_apigw_client = None
 
     @property
     def aws_dynamodb_client(self):
