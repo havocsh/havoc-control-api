@@ -244,23 +244,23 @@ class Deliver:
             for portgroup in portgroups:
                 if portgroup != 'None':
                     portgroup_entry = self.get_portgroup_entry(portgroup)
-                    tasks = portgroup_entry['Item']['tasks']['SS']
-                    tasks.remove(self.task_name)
-                    if not tasks:
-                        tasks.append('None')
-                    self.update_portgroup_entry(portgroup, tasks)
+                    portgroup_tasks = portgroup_entry['Item']['tasks']['SS']
+                    portgroup_tasks.remove(self.task_name)
+                    if not portgroup_tasks:
+                        portgroup_tasks.append('None')
+                    self.update_portgroup_entry(portgroup, portgroup_tasks)
             if task_host_name != 'None':
                 domain_entry = self.get_domain_entry(task_domain_name)
                 hosted_zone = domain_entry['Item']['hosted_zone']['S']
-                tasks = domain_entry['Item']['tasks']['SS']
-                tasks.remove(self.task_name)
-                if not tasks:
-                    tasks.append('None')
+                domain_tasks = domain_entry['Item']['tasks']['SS']
+                domain_tasks.remove(self.task_name)
+                if not domain_tasks:
+                    domain_tasks.append('None')
                 domain_host_names = domain_entry['Item']['host_names']['SS']
                 domain_host_names.remove(task_host_name)
                 if not domain_host_names:
                     domain_host_names.append('None')
-                self.update_domain_entry(task_domain_name, tasks, domain_host_names)
+                self.update_domain_entry(task_domain_name, domain_tasks, domain_host_names)
                 self.delete_resource_record_set(hosted_zone, task_host_name, task_attack_ip)
             self.delete_task_entry()
         else:
