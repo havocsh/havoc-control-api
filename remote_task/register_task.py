@@ -89,7 +89,7 @@ class Task:
             Key={
                 'task_name': {'S': self.task_name}
             },
-            UpdateExpression='set task_context=:task_context, task_status=:task_status, task_host_name=:task_host_name '
+            UpdateExpression='set task_context=:task_context, task_status=:task_status, task_host_name=:task_host_name, '
                              'task_domain_name=:task_domain_name, attack_ip=:attack_ip, local_ip=:local_ip, '
                              'portgroups=:portgroups, task_type=:task_type, instruct_instances=:instruct_instances, '
                              'last_instruct_user_id=:last_instruct_user_id, '
