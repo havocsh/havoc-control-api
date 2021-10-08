@@ -2,6 +2,7 @@ import re
 import sys
 import json
 import boto3
+import base64
 
 
 def format_response(status_code, result, message, log, **kwargs):
@@ -127,13 +128,15 @@ class Workspace:
         self.file_contents = self.detail['file_contents']
 
         try:
-            self.file_contents.decode()
+            decoded_file = base64.b64decode(self.file_contents)
+            decoded_file.decode()
         except:
             return format_response(415, 'failed', 'file_contents must be bytes', self.log)
 
-        if sys.getsizeof(self.file_contents) > 26214400:
+        if sys.getsizeof(decoded_file) > 26214400:
             return format_response(413, 'failed', 'max file size exceeded', self.log)
 
+        self.file_contents = decoded_file
         self.upload_object()
         return format_response(200, 'success', 'create file succeeded', None)
 
