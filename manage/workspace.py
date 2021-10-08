@@ -50,7 +50,7 @@ class Workspace:
         response = self.aws_s3_client.put_object(
             Body=self.file_contents,
             Bucket=f'{self.campaign_id}-workspace',
-            Key='/shared/' + self.filename
+            Key='shared/' + self.filename
         )
         assert response, f"Failed to upload object to shared workspace"
         return True
