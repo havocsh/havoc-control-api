@@ -205,6 +205,12 @@ class Task:
                     }
                 ]
             },
+            tags=[
+                {
+                    'key': 'task_name',
+                    'value': self.task_name
+                }
+            ],
             taskDefinition=self.task_type
         )
         self.run_task_response = response
