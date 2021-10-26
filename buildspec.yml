@@ -23,3 +23,4 @@ phases:
       - aws s3 cp --content-type text/plain task_control.zip.base64sha256 s3://$BUCKET
       - aws s3 cp task_result.zip s3://$BUCKET
       - aws s3 cp --content-type text/plain task_result.zip.base64sha256 s3://$BUCKET
+      - echo Build complete.
