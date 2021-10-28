@@ -58,7 +58,7 @@ class Workspace:
     def list_objects(self):
         response = self.aws_s3_client.list_objects_v2(
             Bucket=f'{self.campaign_id}-workspace',
-            Prefix='/shared/'
+            Prefix='shared/'
         )
         assert response, f"list_objects in shared workspace failed"
         return response
@@ -66,7 +66,7 @@ class Workspace:
     def get_object(self):
         response = self.aws_s3_client.get_object(
             Bucket=f'{self.campaign_id}-workspace',
-            Key='/shared/' + self.filename
+            Key='shared/' + self.filename
         )
         assert response, f"get_object from shared workspace failed for filename {self.filename}"
         return response['Body'].read()
@@ -74,7 +74,7 @@ class Workspace:
     def delete_object(self):
         response = self.aws_s3_client.delete_object(
             Bucket=f'{self.campaign_id}-workspace',
-            Key='/shared/' + self.filename
+            Key='shared/' + self.filename
         )
         assert response, f"delete_object from shared workspace failed for filename {self.filename}"
         return True
@@ -82,7 +82,7 @@ class Workspace:
     def list(self):
 
         list_results = self.list_objects()
-        regex = '/shared/(.*)'
+        regex = 'shared/(.*)'
         file_list = []
         file_name_list = []
         if 'Contents' in list_results:
@@ -102,7 +102,7 @@ class Workspace:
 
         # List files in bucket to confirm that file is present
         list_results = self.list_objects()
-        regex = '/shared/(.*)'
+        regex = 'shared/(.*)'
         file_list = []
         file_name_list = []
         if 'Contents' in list_results:
@@ -147,7 +147,7 @@ class Workspace:
 
         # List files in bucket to confirm that file is present
         list_results = self.list_objects()
-        regex = '/shared/(.*)'
+        regex = 'shared/(.*)'
         file_list = []
         file_name_list = []
         if 'Contents' in list_results:
