@@ -115,7 +115,10 @@ class Workspace:
                 file_name_list.append(file_name)
         if self.filename in file_name_list:
             get_object_results = self.get_object()
-            return format_response(200, 'success', 'get file succeeded', None, filename=self.filename, file_contents=get_object_results)
+            encoded_file = base64.b64encode(get_object_results).decode()
+            return format_response(
+                200, 'success', 'get file succeeded', None, filename=self.filename, file_contents=encoded_file
+            )
         else:
             return format_response(404, 'failed', 'file not found', self.log)
 
