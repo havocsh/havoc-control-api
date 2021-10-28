@@ -247,6 +247,10 @@ class Portgroup:
             return format_response(400, 'failed', 'invalid portgroup_action', self.log)
         ip_ranges = self.detail['ip_ranges']
         port = self.detail['port']
+        if not isinstance(port, str) and not isinstance(port, int):
+            return format_response(400, 'failed', 'invalid port', self.log)
+        else:
+            port = int(port)
         ip_protocol = self.detail['ip_protocol']
         if ip_protocol not in ['tcp', 'udp', 'icmp']:
             return format_response(400, 'failed', 'invalid ip_protocol', self.log)
