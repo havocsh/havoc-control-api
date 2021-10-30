@@ -252,7 +252,7 @@ class Tasks:
             if task_entry['Item']['task_domain_name']['S'] != 'None':
                 task_attack_ip = task_entry['Item']['attack_ip']['S']
                 task_host_name = task_entry['Item']['task_host_name']['S']
-                task_domain_name = task_entry['Item']['task_domain_name']
+                task_domain_name = task_entry['Item']['task_domain_name']['S']
                 domain_entry = self.get_domain_entry(task_domain_name)
                 hosted_zone = domain_entry['Item']['hosted_zone']['S']
                 tasks = domain_entry['Item']['tasks']['SS']
