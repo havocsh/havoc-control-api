@@ -237,9 +237,6 @@ class Deliver:
                 task_instruct_args_fixup[k] = {'BOOL': v}
             if isinstance(v, bytes):
                 task_instruct_args_fixup[k] = {'B': v}
-        self.add_queue_attribute(stime, expiration_stime, task_instruct_instance, task_instruct_command,
-                                 task_instruct_args_fixup, task_host_name, task_domain_name, task_attack_ip,
-                                 task_local_ip, json_payload)
         if task_instruct_command == 'terminate':
             for portgroup in portgroups:
                 if portgroup != 'None':
@@ -268,5 +265,9 @@ class Deliver:
             self.delete_task_entry()
         else:
             self.update_task_entry(stime, 'idle', task_end_time)
+
+        self.add_queue_attribute(stime, expiration_stime, task_instruct_instance, task_instruct_command,
+                                 task_instruct_args_fixup, task_host_name, task_domain_name, task_attack_ip,
+                                 task_local_ip, json_payload)
 
         return True
