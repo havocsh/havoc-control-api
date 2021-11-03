@@ -3,7 +3,8 @@ import ast
 import json
 import copy
 import boto3
-from datetime import datetime, timezone, timedelta
+import time as t
+from datetime import datetime, timedelta
 
 
 class Deliver:
@@ -263,6 +264,7 @@ class Deliver:
                 self.update_domain_entry(task_domain_name, domain_tasks, domain_host_names)
                 self.delete_resource_record_set(hosted_zone, task_host_name, task_domain_name, task_attack_ip)
             self.delete_task_entry()
+            t.sleep(10)
         else:
             self.update_task_entry(stime, 'idle', task_end_time)
 
