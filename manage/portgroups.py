@@ -1,6 +1,7 @@
 import os
 import json
 import boto3
+import botocore
 from datetime import datetime
 
 
@@ -105,19 +106,23 @@ class Portgroup:
             return False
 
     def delete_portgroup_entry(self, securitygroup_id):
-        ec2_response = self.aws_ec2_client.delete_security_group(
-            GroupId=securitygroup_id
-        )
-        dynamodb_response = self.aws_dynamodb_client.delete_item(
-            TableName=f'{self.campaign_id}-portgroups',
-            Key={
-                'portgroup_name': {'S': self.portgroup_name}
-            }
-        )
-        if ec2_response and dynamodb_response:
-            return True
-        else:
-            return False
+        try:
+            self.aws_ec2_client.delete_security_group(
+                GroupId=securitygroup_id
+            )
+        except botocore.exceptions.ClientError as error:
+            return error
+
+        try:
+            self.aws_dynamodb_client.delete_item(
+                TableName=f'{self.campaign_id}-portgroups',
+                Key={
+                    'portgroup_name': {'S': self.portgroup_name}
+                }
+            )
+        except botocore.exceptions.ClientError as error:
+            return error
+        return 'True'
 
     def update_portgroup_entry(self, securitygroup_id, ip_ranges, port, ip_protocol, portgroup_action):
         response = None
@@ -194,11 +199,11 @@ class Portgroup:
             return format_response(409, 'failed', 'cannot delete portgroup that is assigned to active tasks', self.log)
 
         # Delete security group
-        try:
-            self.delete_portgroup_entry(securitygroup_id)
+        delete_portgroup = self.delete_portgroup_entry(securitygroup_id)
+        if delete_portgroup == 'True':
             return format_response(200, 'success', 'delete portgroup succeeded', None)
-        except:
-            return format_response(500, 'failed', 'delete portgroup failed', self.log)
+        else:
+            return format_response(409, 'failed', delete_portgroup, self.log)
 
     def get(self):
         if 'portgroup_name' not in self.detail:
