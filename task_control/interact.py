@@ -140,7 +140,7 @@ class Task:
         # Validate that task is idle
         if task_entry['Item']['task_status']['S'] == 'starting':
             return format_response(409, 'failed', f'task {self.task_name} is still starting', self.log)
-        if task_entry['Item']['task_status']['S'] == 'running':
+        if task_entry['Item']['task_status']['S'] == 'busy':
             return format_response(409, 'failed', f'task {self.task_name} is busy', self.log)
         if task_entry['Item']['task_status']['S'] == 'finished':
             return format_response(409, 'failed', f'task {self.task_name} no longer running', self.log)
