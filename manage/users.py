@@ -141,7 +141,8 @@ class Users:
         user_attributes = {'api_key': api_key, 'secret': secret, 'admin': admin}
         self.add_user_attribute(user_attributes)
         response = format_response(
-            200, 'success', None, self.log, user_id=self.manage_user_id, api_key=api_key, secret=secret, admin=admin
+            200, 'success', 'create user succeeded', self.log, user_id=self.manage_user_id, api_key=api_key,
+            secret=secret, admin=admin
         )
         return response
 
@@ -159,7 +160,7 @@ class Users:
             response = format_response(404, 'failed', f'user_id {self.manage_user_id} does not exist', self.log)
             return response
         self.delete_user_id()
-        response = format_response(200, 'success', None, self.log)
+        response = format_response(200, 'success', 'delete user succeeded', self.log)
         return response
 
     def get(self):
@@ -178,7 +179,9 @@ class Users:
         user_id = user_id_entry['Item']['user_id']['S']
         admin = user_id_entry['Item']['admin']['S']
         api_key = user_id_entry['Item']['api_key']['S']
-        return format_response(200, 'success', None, None, user_id=user_id, admin=admin, api_key=api_key)
+        return format_response(
+            200, 'success', 'get user succeeded', None, user_id=user_id, admin=admin, api_key=api_key
+        )
 
     def list(self):
         user_list = []
@@ -186,7 +189,7 @@ class Users:
         for item in users['Items']:
             user_id = item['user_id']['S']
             user_list.append(user_id)
-        return format_response(200, 'success', None, None, users=user_list)
+        return format_response(200, 'success', 'list users succeeded', None, users=user_list)
 
     def update(self):
         calling_user = self.get_user_details(self.user_id)
@@ -206,7 +209,8 @@ class Users:
                 user_attributes['secret'] = secret
                 self.add_user_attribute(user_attributes)
                 response = format_response(
-                    200, 'success', None, self.log, user_id=self.manage_user_id, api_key=api_key, secret=secret
+                    200, 'success', 'update user succeeded', self.log, user_id=self.manage_user_id, api_key=api_key,
+                    secret=secret
                 )
                 return response
             else:
@@ -247,7 +251,8 @@ class Users:
             return response
         self.add_user_attribute(user_attributes)
         response = format_response(
-            200, 'success', None, self.log, user_id=new_user_id, api_key=api_key, secret=secret, admin=admin
+            200, 'success', 'update user succeeded', self.log, user_id=new_user_id, api_key=api_key, secret=secret,
+            admin=admin
         )
         return response
 
