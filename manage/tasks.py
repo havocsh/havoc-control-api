@@ -73,7 +73,7 @@ class Tasks:
         assert response, f"update_domain_entry failed for domain_name {domain_name}"
         return True
 
-    def delete_resource_record_set(self, hosted_zone, host_name, ip_address):
+    def delete_resource_record_set(self, hosted_zone, host_name, domain_name, ip_address):
         response = self.aws_route53_client.change_resource_record_sets(
             HostedZoneId=hosted_zone,
             ChangeBatch={
@@ -81,7 +81,7 @@ class Tasks:
                     {
                         'Action': 'DELETE',
                         'ResourceRecordSet': {
-                            'Name': host_name,
+                            'Name': f'{host_name}.{domain_name}',
                             'Type': 'A',
                             'TTL': 300,
                             'ResourceRecords': [
@@ -264,7 +264,7 @@ class Tasks:
                 if not domain_host_names:
                     domain_host_names.append('None')
                 self.update_domain_entry(task_domain_name, tasks, domain_host_names)
-                self.delete_resource_record_set(hosted_zone, task_host_name, task_attack_ip)
+                self.delete_resource_record_set(hosted_zone, task_host_name, task_domain_name, task_attack_ip)
             self.delete_task_entry()
             return format_response(200, 'success', 'kill task succeeded', None)
 
