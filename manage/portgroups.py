@@ -111,7 +111,9 @@ class Portgroup:
                 GroupId=securitygroup_id
             )
         except botocore.exceptions.ClientError as error:
-            return error
+            response = f'error_code: {error.response["Error"]["Code"]}, ' \
+                       f'error_message: {error.response["Error"]["Message"]}'
+            return response
 
         try:
             self.aws_dynamodb_client.delete_item(
@@ -121,7 +123,9 @@ class Portgroup:
                 }
             )
         except botocore.exceptions.ClientError as error:
-            return error
+            response = f'error_code: {error.response["Error"]["Code"]}, ' \
+                       f'error_message: {error.response["Error"]["Message"]}'
+            return response
         return 'True'
 
     def update_portgroup_entry(self, securitygroup_id, ip_ranges, port, ip_protocol, portgroup_action):
