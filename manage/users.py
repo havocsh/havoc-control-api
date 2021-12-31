@@ -192,10 +192,12 @@ class Users:
         return format_response(200, 'success', 'list users succeeded', None, users=user_list)
 
     def update(self):
+        if 'user_id' not in self.detail:
+            return format_response(400, 'failed', 'invalid detail - missing user_id', self.log)
+        self.manage_user_id = self.detail['user_id']
         calling_user = self.get_user_details(self.user_id)
         if calling_user['Item']['admin']['S'] != 'yes':
-            if 'reset_keys' in self.detail and self.user_id == self.detail['user_id']:
-                self.manage_user_id = self.detail['user_id']
+            if 'reset_keys' in self.detail and self.detail['reset_keys'].lower() == 'yes' and self.user_id == self.manage_user_id:
                 user_attributes = {}
                 api_key = None
                 while not api_key:
@@ -216,7 +218,6 @@ class Users:
             else:
                 response = format_response(403, 'failed', 'not allowed', self.log)
                 return response
-        self.manage_user_id = self.detail['user_id']
         exists = self.get_user_details(self.manage_user_id)
         if 'Item' not in exists:
             response = format_response(404, 'failed', f'user_id {self.manage_user_id} does not exist', self.log)
@@ -228,7 +229,7 @@ class Users:
         user_attributes = {}
         if 'new_user_id' in self.detail:
             new_user_id = self.detail['new_user_id']
-        if 'reset_keys' in self.detail:
+        if 'reset_keys' in self.detail and self.detail['reset_keys'].lower() == 'yes':
             api_key = None
             while not api_key:
                 api_key = generate_string(12)
