@@ -173,7 +173,11 @@ class Portgroup:
             if i not in self.detail:
                 return format_response(400, 'failed', 'invalid detail', self.log)
         self.portgroup_name = self.detail['portgroup_name']
+        if not self.portgroup_name:
+            return format_response(400, 'failed', 'invalid detail: empty portgroup_name', self.log)
         portgroup_description = self.detail['portgroup_description']
+        if not portgroup_description:
+            return format_response(400, 'failed', 'invalid detail: empty portgroup_description', self.log)
         timestamp = datetime.now().strftime('%s')
 
         conflict = self.get_portgroup_entry()
@@ -190,6 +194,8 @@ class Portgroup:
         if 'portgroup_name' not in self.detail:
             return format_response(400, 'failed', 'invalid detail', self.log)
         self.portgroup_name = self.detail['portgroup_name']
+        if not self.portgroup_name:
+            return format_response(400, 'failed', 'invalid detail: empty portgroup_name', self.log)
 
         # Get portgroup details
         portgroup_entry = self.get_portgroup_entry()
@@ -213,6 +219,8 @@ class Portgroup:
         if 'portgroup_name' not in self.detail:
             return format_response(400, 'failed', 'invalid detail', self.log)
         self.portgroup_name = self.detail['portgroup_name']
+        if not self.portgroup_name:
+            return format_response(400, 'failed', 'invalid detail: empty portgroup_name', self.log)
 
         portgroup_entry = self.get_portgroup_entry()
         if 'Item' not in portgroup_entry:
@@ -251,15 +259,21 @@ class Portgroup:
                 return format_response(400, 'failed', 'invalid detail', self.log)
 
         self.portgroup_name = self.detail['portgroup_name']
+        if not self.portgroup_name:
+            return format_response(400, 'failed', 'invalid detail: empty portgroup_name', self.log)
         portgroup_action = self.detail['portgroup_action']
         if portgroup_action not in ['add', 'remove']:
             return format_response(400, 'failed', 'invalid portgroup_action', self.log)
         ip_ranges = self.detail['ip_ranges']
+        if not ip_ranges:
+            return format_response(400, 'failed', 'invalid detail: empty ip_ranges', self.log)
         port = self.detail['port']
         if not isinstance(port, str) and not isinstance(port, int):
-            return format_response(400, 'failed', 'invalid port', self.log)
-        else:
+            return format_response(400, 'failed', 'invalid detail: empty port or wrong type', self.log)
+        try:
             port = int(port)
+        except:
+            return format_response(400, 'failed', 'invalid detail: port must be a number', self.log)
         ip_protocol = self.detail['ip_protocol']
         if ip_protocol not in ['tcp', 'udp', 'icmp']:
             return format_response(400, 'failed', 'invalid ip_protocol', self.log)
