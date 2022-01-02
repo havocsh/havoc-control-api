@@ -293,6 +293,13 @@ class Task:
             end_time = self.detail['end_time']
         else:
             end_time = 'None'
+        if end_time != 'None':
+            try:
+                datetime.strptime(end_time, "%m/%d/%Y %H:%M:%S %z")
+            except:
+                return format_response(
+                    400, 'failed', 'invalid detail: end_time must be formatted as "%m/%d/%Y %H:%M:%S %z"', self.log
+                )
 
         # Verify that the task_name is unique.
         conflict = self.get_task_entry()
