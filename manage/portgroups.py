@@ -120,7 +120,7 @@ class Portgroup:
                     portgroup_deleted = True
                 except botocore.exceptions.ClientError as error:
                     count += 1
-                    t.sleep(5)
+                    t.sleep(10)
                     response = f'error_code: {error.response["Error"]["Code"]}, ' \
                                f'error_message: {error.response["Error"]["Message"]}'
             else:
