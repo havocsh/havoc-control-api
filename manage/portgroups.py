@@ -2,6 +2,7 @@ import os
 import json
 import boto3
 import botocore
+import time as t
 from datetime import datetime
 
 
@@ -106,13 +107,25 @@ class Portgroup:
             return False
 
     def delete_portgroup_entry(self, securitygroup_id):
-        try:
-            self.aws_ec2_client.delete_security_group(
-                GroupId=securitygroup_id
-            )
-        except botocore.exceptions.ClientError as error:
-            response = f'error_code: {error.response["Error"]["Code"]}, ' \
-                       f'error_message: {error.response["Error"]["Message"]}'
+        count = 1
+        portgroup_deleted = False
+        response = None
+        while not portgroup_deleted:
+            if count <= 5:
+                response = None
+                try:
+                    self.aws_ec2_client.delete_security_group(
+                        GroupId=securitygroup_id
+                    )
+                    portgroup_deleted = True
+                except botocore.exceptions.ClientError as error:
+                    count += 1
+                    t.sleep(5)
+                    response = f'error_code: {error.response["Error"]["Code"]}, ' \
+                               f'error_message: {error.response["Error"]["Message"]}'
+            else:
+                portgroup_deleted = True
+        if response:
             return response
 
         try:
