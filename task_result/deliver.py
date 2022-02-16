@@ -44,7 +44,7 @@ class Deliver:
         )
 
     def update_domain_entry(self, domain_name, domain_tasks, host_names):
-        response = self.aws_dynamodb_client.update_item(
+        return self.aws_dynamodb_client.update_item(
             TableName=f'{self.campaign_id}-domains',
             Key={
                 'domain_name': {'S': domain_name}
@@ -55,11 +55,9 @@ class Deliver:
                 ':host_names': {'SS': host_names}
             }
         )
-        assert response, f"update_domain_entry failed for domain_name {domain_name}"
-        return True
 
     def delete_resource_record_set(self, hosted_zone, host_name, domain_name, ip_address):
-        response = self.aws_route53_client.change_resource_record_sets(
+        return self.aws_route53_client.change_resource_record_sets(
             HostedZoneId=hosted_zone,
             ChangeBatch={
                 'Changes': [
@@ -79,12 +77,10 @@ class Deliver:
                 ]
             }
         )
-        if response:
-            return True
 
     def add_queue_attribute(self, stime, expire_time, task_instruct_instance, task_instruct_command, task_instruct_args,
                             task_host_name, task_domain_name, task_attack_ip, task_local_ip, json_payload):
-        response = self.aws_dynamodb_client.update_item(
+        return self.aws_dynamodb_client.update_item(
             TableName=f'{self.campaign_id}-queue',
             Key={
                 'task_name': {'S': self.task_name},
@@ -110,7 +106,6 @@ class Deliver:
                 ':payload': {'S': json_payload}
             }
         )
-        assert response, f'add_queue_attribute failed for task_name {self.task_name}'
 
     def get_task_entry(self):
         return self.aws_dynamodb_client.get_item(
@@ -121,7 +116,7 @@ class Deliver:
         )
 
     def update_task_entry(self, stime, task_status, task_end_time):
-        response = self.aws_dynamodb_client.update_item(
+        return self.aws_dynamodb_client.update_item(
             TableName=f'{self.campaign_id}-tasks',
             Key={
                 'task_name': {'S': self.task_name}
@@ -134,18 +129,14 @@ class Deliver:
                 ':scheduled_end_time': {'S': task_end_time}
             }
         )
-        assert response, f"update_task_entry failed for task_name {self.task_name}"
-        return True
 
     def delete_task_entry(self):
-        response = self.aws_dynamodb_client.delete_item(
+        return self.aws_dynamodb_client.delete_item(
             TableName=f'{self.campaign_id}-tasks',
             Key={
                 'task_name': {'S': self.task_name}
             }
         )
-        assert response, f"delete_task_entry failed for task_name {self.task_name}"
-        return True
 
     def get_portgroup_entry(self, portgroup_name):
         return self.aws_dynamodb_client.get_item(
@@ -156,7 +147,7 @@ class Deliver:
         )
 
     def update_portgroup_entry(self, portgroup_name, portgroup_tasks):
-        response = self.aws_dynamodb_client.update_item(
+        return self.aws_dynamodb_client.update_item(
             TableName=f'{self.campaign_id}-portgroups',
             Key={
                 'portgroup_name': {'S': portgroup_name}
@@ -166,8 +157,6 @@ class Deliver:
                 ':tasks': {'SS': portgroup_tasks}
             }
         )
-        assert response, f"update_portgroup_entry failed for portgroup_name {portgroup_name}"
-        return True
 
     def deliver_result(self):
         # Set vars
@@ -263,12 +252,13 @@ class Deliver:
                     domain_host_names.append('None')
                 self.update_domain_entry(task_domain_name, domain_tasks, domain_host_names)
                 self.delete_resource_record_set(hosted_zone, task_host_name, task_domain_name, task_attack_ip)
-            self.delete_task_entry()
+            completed_instruction = self.delete_task_entry()
             t.sleep(20)
         else:
-            self.update_task_entry(stime, 'idle', task_end_time)
+            completed_instruction = self.update_task_entry(stime, 'idle', task_end_time)
 
-        self.add_queue_attribute(stime, expiration_stime, task_instruct_instance, task_instruct_command,
+        if completed_instruction:
+            self.add_queue_attribute(stime, expiration_stime, task_instruct_instance, task_instruct_command,
                                  task_instruct_args_fixup, task_host_name, task_domain_name, task_attack_ip,
                                  task_local_ip, json_payload)
 
