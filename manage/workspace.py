@@ -6,7 +6,7 @@ import base64
 
 
 def format_response(status_code, result, message, log, **kwargs):
-    response = {'result': result}
+    response = {'outcome': result}
     if message:
         response['message'] = message
     if kwargs:
@@ -93,7 +93,7 @@ class Workspace:
             for file_entry in file_list:
                 file_name = re.search(regex, file_entry).group(1)
                 file_name_list.append(file_name)
-        return format_response(200, 'success', 'list workspace succeeded', None, files=file_name_list)
+        return format_response(200, 'success', 'list files succeeded', None, files=file_name_list)
 
     def get(self):
         if 'filename' not in self.detail:

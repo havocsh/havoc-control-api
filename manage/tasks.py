@@ -3,7 +3,7 @@ import boto3
 
 
 def format_response(status_code, result, message, log, **kwargs):
-    response = {'result': result}
+    response = {'outcome': result}
     if message:
         response['message'] = message
     if kwargs:
